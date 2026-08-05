@@ -1,0 +1,11 @@
+.group-details-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.back-btn{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;color:#4a5568}
+.group-details-header .title h2{margin:0;color:#2d3748}
+.group-details-header .title p{margin:2px 0 0 0;color:#718096;font-size:.9rem}
+.add-expense-btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:600}
+.group-details-desc{color:#4a5568;margin:8px 0 16px 0}
+.member-avatars{display:flex;gap:6px;margin-bottom:16px}
+.member-avatars .avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;font-size:.8rem;font-weight:700}
+
+
+
