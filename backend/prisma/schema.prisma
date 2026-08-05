@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(100)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  groupsCreated   Group[]        @relation("GroupCreator")
+  memberships     GroupMember[]
+  expensesPaid    Expense[]      @relation("ExpensePayer")
+  expensesCreated Expense[]      @relation("ExpenseCreator")
+  splits          ExpenseSplit[]
+  settlementsFrom Settlement[]   @relation("SettlementFrom")
+  settlementsTo   Settlement[]   @relation("SettlementTo")
+
+  @@map("users")
+}
+
+model Group {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  createdById Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  createdBy   User          @relation("GroupCreator", fields: [createdById], references: [id])
+  members     GroupMember[]
+  expenses    Expense[]
+  settlements Settlement[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  groupId  Int      @map("group_id")
+  userId   Int      @map("user_id")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, userId])
+  @@index([userId])
+  @@map("group_members")
+}
+
+enum SplitType {
+  EQUAL
+  EXACT
+  PERCENTAGE
+}
+
+model Expense {
+  id          Int       @id @default(autoincrement())
+  groupId     Int       @map("group_id")
+  paidById    Int       @map("paid_by")
+  createdById Int       @map("created_by")
+  amountCents Int       @map("amount_cents")
+  description String    @db.VarChar(200)
+  category    String    @db.VarChar(50)
+  splitType   SplitType @default(EQUAL) @map("split_type")
+  expenseDate DateTime  @map("expense_date") @db.Date
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  group     Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy    User           @relation("ExpensePayer", fields: [paidById], references: [id])
+  createdBy User           @relation("ExpenseCreator", fields: [createdById], references: [id])
+  splits    ExpenseSplit[]
+
+  @@index([groupId])
+  @@map("expenses")
+}
+
+model ExpenseSplit {
+  id         Int @id @default(autoincrement())
+  expenseId  Int @map("expense_id")
+  userId     Int @map("user_id")
+  shareCents Int @map("share_cents")
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([expenseId, userId])
+  @@index([userId])
+  @@map("expense_splits")
+}
+
+model Settlement {
+  id          Int      @id @default(autoincrement())
+  groupId     Int      @map("group_id")
+  fromUserId  Int      @map("from_user_id")
+  toUserId    Int      @map("to_user_id")
+  amountCents Int      @map("amount_cents")
+  settledAt   DateTime @default(now()) @map("settled_at")
+
+  group    Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  fromUser User  @relation("SettlementFrom", fields: [fromUserId], references: [id])
+  toUser   User  @relation("SettlementTo", fields: [toUserId], references: [id])
+
+  @@index([groupId])
+  @@map("settlements")
+}
