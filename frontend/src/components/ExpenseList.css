@@ -199,14 +199,54 @@
   border-color: #cbd5e0;
 }
 
-.action-button.settle-up {
-  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-  color: white;
-  border-color: transparent;
+.action-button.delete-expense {
+  color: #c53030;
+  border-color: #feb2b2;
 }
 
-.action-button.settle-up:hover {
-  background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+.action-button.delete-expense:hover {
+  background: #fff5f5;
+}
+
+.expense-card.pending {
+  opacity: 0.6;
+}
+
+.split-breakdown {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.split-breakdown li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.split-breakdown .split-share {
+  margin-left: auto;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.avatar-xs {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 
 @media (max-width: 768px) {

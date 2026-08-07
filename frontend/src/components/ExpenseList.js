@@ -1,39 +1,25 @@
-import React from 'react';
-import { getUserById } from '../lib/mockData';
+import React, { useState } from 'react';
+import { formatCurrency, formatDate, initial } from '../lib/format';
 import './ExpenseList.css';
 
-export function ExpenseList({ expenses, onAddExpense }) {
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
+const CATEGORY_ICONS = {
+  Food: '🍽️',
+  Transportation: '🚗',
+  Entertainment: '🎬',
+  Shopping: '🛍️',
+  Travel: '✈️',
+  Utilities: '💡',
+  Accommodation: '🏨',
+  Other: '📝',
+};
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const getCategoryIcon = (category) => {
-    const icons = {
-      'Food': '🍽️',
-      'Transportation': '🚗',
-      'Entertainment': '🎬',
-      'Shopping': '🛍️',
-      'Travel': '✈️',
-      'Other': '📝'
-    };
-    return icons[category] || '📝';
-  };
+export function ExpenseList({ expenses, onAddExpense, onDeleteExpense, canDelete, pendingIds = [] }) {
+  const [expandedId, setExpandedId] = useState(null);
 
   return (
     <div className="expense-list">
       <div className="expense-list-header">
-        <h2>Recent Expenses</h2>
+        <h2>Expenses</h2>
         <button className="add-expense-button" onClick={onAddExpense}>
           + Add New Expense
         </button>
@@ -50,49 +36,67 @@ export function ExpenseList({ expenses, onAddExpense }) {
         </div>
       ) : (
         <div className="expenses-grid">
-          {expenses.map((expense) => (
-            <div key={expense.id} className="expense-card">
-              <div className="expense-header">
-                <div className="expense-category">
-                  <span className="category-icon">
-                    {getCategoryIcon(expense.category)}
-                  </span>
-                  <span className="category-name">{expense.category}</span>
+          {expenses.map((expense) => {
+            const isPending = pendingIds.includes(expense.id);
+            const isExpanded = expandedId === expense.id;
+            return (
+              <div key={expense.id} className={`expense-card ${isPending ? 'pending' : ''}`}>
+                <div className="expense-header">
+                  <div className="expense-category">
+                    <span className="category-icon">{CATEGORY_ICONS[expense.category] || '📝'}</span>
+                    <span className="category-name">{expense.category}</span>
+                  </div>
+                  <div className="expense-amount">{formatCurrency(expense.amount)}</div>
                 </div>
-                <div className="expense-amount">
-                  {formatCurrency(expense.amount)}
-                </div>
-              </div>
 
-              <div className="expense-details">
-                <h3 className="expense-title">{expense.title}</h3>
-                <p className="expense-date">{formatDate(expense.date)}</p>
-              </div>
-
-              <div className="expense-split">
-                <div className="split-info">
-                  <span className="paid-by">
-                    Paid by <strong>{getUserById(expense.paidBy)?.name || 'Unknown'}</strong>
-                  </span>
-                  <span className="split-count">
-                    Split between {expense.splitBetween.length} people
-                  </span>
+                <div className="expense-details">
+                  <h3 className="expense-title">{expense.description}</h3>
+                  <p className="expense-date">{formatDate(expense.expenseDate)}</p>
                 </div>
-                <div className="split-amount">
-                  {formatCurrency(expense.amount / expense.splitBetween.length)} each
+
+                <div className="expense-split">
+                  <div className="split-info">
+                    <span className="paid-by">
+                      Paid by <strong>{expense.paidBy?.name || 'Unknown'}</strong>
+                    </span>
+                    <span className="split-count">
+                      Split {expense.splitType.toLowerCase()} between {expense.splits.length}
+                    </span>
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <ul className="split-breakdown">
+                    {expense.splits.map((s) => (
+                      <li key={s.user.id}>
+                        <span className="avatar-xs">{initial(s.user.name)}</span>
+                        <span>{s.user.name}</span>
+                        <span className="split-share">{formatCurrency(s.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="expense-actions">
+                  <button
+                    className="action-button view-details"
+                    onClick={() => setExpandedId(isExpanded ? null : expense.id)}
+                  >
+                    {isExpanded ? 'Hide split' : 'View split'}
+                  </button>
+                  {canDelete(expense) && (
+                    <button
+                      className="action-button delete-expense"
+                      onClick={() => onDeleteExpense(expense)}
+                      disabled={isPending}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
-
-              <div className="expense-actions">
-                <button className="action-button view-details">
-                  View Details
-                </button>
-                <button className="action-button settle-up">
-                  Settle Up
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,0 +1,150 @@
+.settle-up {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settle-section {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.settle-section h3 {
+  margin: 0 0 4px 0;
+  color: #2d3748;
+  font-size: 1.1rem;
+}
+
+.settle-hint {
+  color: #718096;
+  font-size: 0.85rem;
+  margin: 0 0 16px 0;
+}
+
+.settle-empty {
+  color: #2f855a;
+  font-weight: 600;
+  margin: 8px 0 0 0;
+}
+
+.balance-list,
+.suggestion-list,
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.balance-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.balance-name {
+  color: #2d3748;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.balance-amount {
+  margin-left: auto;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.balance-amount.owed {
+  color: #2f855a;
+}
+
+.balance-amount.owes {
+  color: #c53030;
+}
+
+.balance-amount.settled {
+  color: #a0aec0;
+}
+
+.suggestion-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f7fafc;
+  border-radius: 8px;
+}
+
+.suggestion-text {
+  color: #2d3748;
+  font-size: 0.9rem;
+}
+
+.suggestion-amount {
+  color: #4f46e5;
+  font-weight: 700;
+}
+
+.record-payment-btn {
+  margin-left: auto;
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.record-payment-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+}
+
+.suggestion-waiting {
+  margin-left: auto;
+  color: #a0aec0;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.suggestion-error {
+  width: 100%;
+  color: #c53030;
+  font-size: 0.8rem;
+}
+
+.history-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: #4a5568;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.history-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.history-date {
+  color: #a0aec0;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .suggestion-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .record-payment-btn {
+    margin-left: 0;
+    width: 100%;
+  }
+}

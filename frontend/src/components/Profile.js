@@ -1,80 +1,44 @@
 import React from 'react';
 import './Profile.css';
+import { formatCurrency, initial } from '../lib/format';
 
-export function Profile({ user, onLogout, onClose }) {
+export function Profile({ user, groups, onLogout }) {
+  const totalOwed = groups.filter((g) => g.yourBalance > 0).reduce((sum, g) => sum + g.yourBalance, 0);
+  const totalOwe = groups.filter((g) => g.yourBalance < 0).reduce((sum, g) => sum - g.yourBalance, 0);
+
   return (
     <div className="profile-page">
       <div className="profile-header">
         <h2>Profile</h2>
-        {onClose && (
-          <button className="close-profile-btn" onClick={onClose}>
-            ×
-          </button>
-        )}
       </div>
 
       <div className="profile-content">
         <div className="profile-card">
-          <div className="profile-avatar">
-            {user.name.charAt(0).toUpperCase()}
-          </div>
+          <div className="profile-avatar">{initial(user.name)}</div>
           <div className="profile-info">
             <h3>{user.name}</h3>
             <p>{user.email}</p>
             <div className="profile-stats">
               <div className="stat">
-                <span className="stat-label">Total Expenses</span>
-                <span className="stat-value">$1,245.50</span>
-              </div>
-              <div className="stat">
                 <span className="stat-label">Groups</span>
-                <span className="stat-value">3</span>
+                <span className="stat-value">{groups.length}</span>
               </div>
               <div className="stat">
-                <span className="stat-label">Friends</span>
-                <span className="stat-value">12</span>
+                <span className="stat-label">You're owed</span>
+                <span className="stat-value positive">{formatCurrency(totalOwed)}</span>
+              </div>
+              <div className="stat">
+                <span className="stat-label">You owe</span>
+                <span className="stat-value negative">{formatCurrency(totalOwe)}</span>
               </div>
             </div>
           </div>
         </div>
 
         <div className="profile-actions">
-          <button className="action-button edit-profile">
-            Edit Profile
-          </button>
-          <button className="action-button change-password">
-            Change Password
-          </button>
           <button className="action-button logout" onClick={onLogout}>
             Logout
           </button>
-        </div>
-
-        <div className="recent-activity">
-          <h3>Recent Activity</h3>
-          <div className="activity-list">
-            <div className="activity-item">
-              <div className="activity-icon">💰</div>
-              <div className="activity-details">
-                <p>Added expense "Dinner at Restaurant"</p>
-                <span>2 hours ago</span>
-              </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-icon">👥</div>
-              <div className="activity-details">
-                <p>Joined group "Weekend Trip"</p>
-                <span>1 day ago</span>
-              </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-icon">✅</div>
-              <div className="activity-details">
-                <p>Settled up with John Doe</p>
-                <span>3 days ago</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

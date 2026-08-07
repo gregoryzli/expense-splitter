@@ -3,8 +3,7 @@ import './NavigationMenu.css';
 
 export function NavigationMenu({ isOpen, onToggle, currentView, onViewChange, user }) {
   const menuItems = [
-    { id: 'home', label: 'Home', icon: '🏠' },
-    { id: 'pay-later', label: 'Settle Later', icon: '💳' },
+    { id: 'home', label: 'Groups', icon: '🏠' },
     { id: 'about', label: 'About', icon: 'ℹ️' },
     { id: 'settings', label: 'Settings', icon: '⚙️' }
   ];

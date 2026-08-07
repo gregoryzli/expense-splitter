@@ -17,27 +17,6 @@
   margin: 0;
 }
 
-.close-profile-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #718096;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.close-profile-btn:hover {
-  background-color: #f7fafc;
-  color: #4a5568;
-}
-
 .profile-content {
   display: flex;
   flex-direction: column;
@@ -107,6 +86,14 @@
   font-weight: 700;
 }
 
+.stat-value.positive {
+  color: #2f855a;
+}
+
+.stat-value.negative {
+  color: #c53030;
+}
+
 .profile-actions {
   display: flex;
   gap: 12px;
@@ -140,64 +127,6 @@
 
 .action-button.logout:hover {
   background: linear-gradient(135deg, #c53030 0%, #9c2626 100%);
-}
-
-.recent-activity {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
-}
-
-.recent-activity h3 {
-  color: #2d3748;
-  font-size: 1.3rem;
-  font-weight: 600;
-  margin: 0 0 20px 0;
-}
-
-.activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.activity-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: #f7fafc;
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
-}
-
-.activity-item:hover {
-  background: #edf2f7;
-}
-
-.activity-icon {
-  font-size: 1.5rem;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.activity-details p {
-  color: #2d3748;
-  font-weight: 500;
-  margin: 0 0 4px 0;
-}
-
-.activity-details span {
-  color: #718096;
-  font-size: 0.85rem;
 }
 
 @media (max-width: 768px) {

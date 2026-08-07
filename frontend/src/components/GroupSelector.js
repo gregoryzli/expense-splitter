@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { memberCountLabel } from '../lib/format';
 import './GroupSelector.css';
 
 export function GroupSelector({ groups, selectedGroupId, onGroupChange, onCreateGroup }) {
@@ -20,7 +21,7 @@ export function GroupSelector({ groups, selectedGroupId, onGroupChange, onCreate
         <div className="group-info">
           <span className="group-name">{selectedGroup?.name || 'Select Group'}</span>
           <span className="group-members">
-            {selectedGroup ? `${selectedGroup.members.length} members` : ''}
+            {selectedGroup ? memberCountLabel(selectedGroup.members.length) : ''}
           </span>
         </div>
         <span className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`}>
@@ -67,7 +68,7 @@ export function GroupSelector({ groups, selectedGroupId, onGroupChange, onCreate
                   <div className="group-item-info">
                     <span className="group-item-name">{group.name}</span>
                     <span className="group-item-members">
-                      {group.members.length} members
+                      {memberCountLabel(group.members.length)}
                     </span>
                   </div>
                   {selectedGroupId === group.id && (

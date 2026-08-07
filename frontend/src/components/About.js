@@ -6,97 +6,45 @@ export function About() {
     <div className="about-page">
       <div className="about-header">
         <h2>About SplitPay</h2>
-        <p>Making expense splitting simple and fair</p>
+        <p>A group expense splitter built as a full-stack portfolio project</p>
       </div>
 
       <div className="about-content">
         <div className="about-section">
-          <div className="section-icon">💡</div>
-          <h3>Our Mission</h3>
+          <div className="section-icon">🧮</div>
+          <h3>The settle-up algorithm</h3>
           <p>
-            SplitPay was created to eliminate the hassle of splitting expenses among friends, 
-            family, and colleagues. We believe that sharing costs should be simple, transparent, 
-            and stress-free.
+            The interesting problem here isn't tracking who paid what -- it's collapsing a
+            group's tangle of debts into the fewest possible payments. Finding the exact
+            minimum is NP-hard, so the backend uses the same greedy approach real tools use:
+            repeatedly match the person owed the most against the person who owes the most.
+            It runs in O(n log n) and never needs more than n − 1 payments for n people.
           </p>
+        </div>
+
+        <div className="about-section">
+          <div className="section-icon">🏗️</div>
+          <h3>Stack</h3>
+          <ul className="features-list">
+            <li>Express + TypeScript backend, MySQL via Prisma</li>
+            <li>JWT auth in an httpOnly cookie, bcrypt-hashed passwords</li>
+            <li>zod request validation, real HTTP status codes throughout</li>
+            <li>Money handled as integer cents end to end -- no floating-point drift</li>
+            <li>React frontend with optimistic updates on expense add/delete and settlements</li>
+          </ul>
         </div>
 
         <div className="about-section">
           <div className="section-icon">🚀</div>
           <h3>Key Features</h3>
           <ul className="features-list">
-            <li>Easy expense tracking and splitting</li>
-            <li>Real-time balance calculations</li>
-            <li>Multiple payment methods</li>
-            <li>Group management</li>
-            <li>Expense history and analytics</li>
-            <li>Secure and private</li>
+            <li>Equal, exact-amount, and percentage expense splits</li>
+            <li>Real-time balance calculations per group</li>
+            <li>Minimum-transaction settle-up suggestions</li>
+            <li>Group membership management</li>
           </ul>
         </div>
-
-        <div className="about-section">
-          <div className="section-icon">👥</div>
-          <h3>Our Team</h3>
-          <p>
-            We're a passionate team of developers and designers who have experienced the 
-            frustration of splitting bills manually. Our goal is to make this process 
-            as seamless as possible for everyone.
-          </p>
-        </div>
-
-        <div className="about-section">
-          <div className="section-icon">📱</div>
-          <h3>Version Information</h3>
-          <div className="version-info">
-            <div className="version-item">
-              <span className="version-label">App Version</span>
-              <span className="version-value">1.0.0</span>
-            </div>
-            <div className="version-item">
-              <span className="version-label">Last Updated</span>
-              <span className="version-value">January 2024</span>
-            </div>
-            <div className="version-item">
-              <span className="version-label">Platform</span>
-              <span className="version-value">Web Application</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="about-section">
-          <div className="section-icon">📞</div>
-          <h3>Contact & Support</h3>
-          <div className="contact-info">
-            <div className="contact-item">
-              <span className="contact-label">Email</span>
-              <span className="contact-value">support@splitpay.com</span>
-            </div>
-            <div className="contact-item">
-              <span className="contact-label">Help Center</span>
-              <span className="contact-value">help.splitpay.com</span>
-            </div>
-            <div className="contact-item">
-              <span className="contact-label">Feedback</span>
-              <span className="contact-value">feedback@splitpay.com</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="about-section">
-          <div className="section-icon">⚖️</div>
-          <h3>Legal</h3>
-          <div className="legal-links">
-            <a href="#" className="legal-link">Privacy Policy</a>
-            <a href="#" className="legal-link">Terms of Service</a>
-            <a href="#" className="legal-link">Cookie Policy</a>
-          </div>
-        </div>
-      </div>
-
-      <div className="about-footer">
-        <p>&copy; 2024 SplitPay. All rights reserved.</p>
-        <p>Made with ❤️ for better expense sharing</p>
       </div>
     </div>
   );
 }
-

@@ -8,13 +8,22 @@
 .group-card-header h3{margin:0;color:#2d3748;font-size:1.1rem;font-weight:600}
 .member-count{color:#718096;font-size:.85rem}
 .group-description{color:#4a5568;margin:8px 0 12px 0;font-size:.95rem}
-.group-footer{display:flex;justify-content:flex-start}
+.group-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .avatars{display:flex;gap:6px}
 .avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;font-size:.8rem;font-weight:700}
 .more{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#edf2f7;color:#4a5568;font-size:.75rem}
+.balance-chip{font-size:.78rem;font-weight:600;padding:4px 8px;border-radius:999px;white-space:nowrap}
+.balance-chip.owed{background:#f0fff4;color:#2f855a}
+.balance-chip.owes{background:#fff5f5;color:#c53030}
+.balance-chip.settled{background:#edf2f7;color:#718096}
 .empty-state{text-align:center;padding:48px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:12px}
 .empty-icon{font-size:40px;margin-bottom:8px}
 .create-first-group{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:600}
+
+@media (max-width: 480px) {
+  .group-list-header{flex-direction:column;align-items:flex-start;gap:12px}
+  .groups-grid{grid-template-columns:1fr}
+}
 
 
 

@@ -24,14 +24,20 @@ router.get("/", async (req, res) => {
     orderBy: { createdAt: "desc" },
   });
 
+  // One balance query per group, run in parallel -- fine at portfolio scale
+  // (a handful of groups per user), and it's what lets the group list show
+  // "you owe $12" at a glance instead of a second round trip per group.
+  const balances = await Promise.all(groups.map((g) => getGroupBalances(g.id)));
+
   res.json(
-    groups.map((g) => ({
+    groups.map((g, i) => ({
       id: g.id,
       name: g.name,
       description: g.description,
       createdById: g.createdById,
       createdAt: g.createdAt,
       members: g.members.map((m) => m.user),
+      yourBalance: centsToDollars(balances[i]!.find((b) => b.userId === req.user!.id)?.balanceCents ?? 0),
     }))
   );
 });

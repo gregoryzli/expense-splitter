@@ -1,66 +1,71 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { api } from '../lib/api';
+import { initial } from '../lib/format';
 import './CreateGroupModal.css';
 
-export function CreateGroupModal({ onClose, onCreateGroup, user }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    memberIds: []
-  });
+export function CreateGroupModal({ onClose, onCreateGroup }) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [search, setSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [invited, setInvited] = useState([]);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  // Mock users for adding to group
-  const availableUsers = [
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
-    { id: 3, name: 'Mike Johnson', email: 'mike@example.com' },
-    { id: 4, name: 'Sarah Wilson', email: 'sarah@example.com' },
-    { id: 5, name: 'Alex Brown', email: 'alex@example.com' },
-    { id: 6, name: 'Emma Davis', email: 'emma@example.com' }
-  ];
+  // Debounced live search against real accounts, replacing the old
+  // hardcoded 6-user picker -- you can only add people who've signed up.
+  useEffect(() => {
+    const query = search.trim();
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    const timer = setTimeout(() => {
+      api
+        .get(`/users?search=${encodeURIComponent(query)}`)
+        .then((users) => setSearchResults(users))
+        .catch(() => setSearchResults([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    setError('');
+  const invite = (user) => {
+    if (!invited.some((u) => u.id === user.id)) {
+      setInvited([...invited, user]);
+    }
+    setSearch('');
+    setSearchResults([]);
   };
 
-  const handleMemberToggle = (userId) => {
-    setFormData(prev => ({
-      ...prev,
-      memberIds: prev.memberIds.includes(userId)
-        ? prev.memberIds.filter(id => id !== userId)
-        : [...prev.memberIds, userId]
-    }));
+  const uninvite = (userId) => {
+    setInvited(invited.filter((u) => u.id !== userId));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (!formData.name.trim()) {
-      setError('Please enter a group name');
-      return;
-    }
-
-    if (formData.name.trim().length < 3) {
+    if (name.trim().length < 3) {
       setError('Group name must be at least 3 characters');
       return;
     }
 
-    const newGroup = {
-      id: Date.now(),
-      name: formData.name.trim(),
-      description: formData.description.trim(),
-      createdBy: user.id,
-      members: [user.id, ...formData.memberIds], // Creator is always a member
-      createdAt: new Date().toISOString().split('T')[0],
-      expenses: []
-    };
-
-    onCreateGroup(newGroup);
+    setSubmitting(true);
+    try {
+      const group = await api.post('/groups', {
+        name: name.trim(),
+        description: description.trim() || undefined,
+        memberEmails: invited.map((u) => u.email),
+      });
+      onCreateGroup(group);
+    } catch (err) {
+      setError(err.message || 'Could not create the group');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -68,9 +73,7 @@ export function CreateGroupModal({ onClose, onCreateGroup, user }) {
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Create New Group</h2>
-          <button className="close-button" onClick={onClose}>
-            ×
-          </button>
+          <button className="close-button" onClick={onClose}>×</button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-form">
@@ -81,9 +84,8 @@ export function CreateGroupModal({ onClose, onCreateGroup, user }) {
             <input
               type="text"
               id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Weekend Trip, Office Lunch"
               required
             />
@@ -93,56 +95,66 @@ export function CreateGroupModal({ onClose, onCreateGroup, user }) {
             <label htmlFor="description">Description (Optional)</label>
             <textarea
               id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what this group is for..."
               rows="3"
             />
           </div>
 
           <div className="form-group">
-            <label>Add Members</label>
-            <p className="form-help">
-              Select users to add to your group. You can add more members later.
-            </p>
-            <div className="members-list">
-              {availableUsers.map(user => (
-                <label key={user.id} className="member-option">
-                  <input
-                    type="checkbox"
-                    checked={formData.memberIds.includes(user.id)}
-                    onChange={() => handleMemberToggle(user.id)}
-                  />
-                  <span className="checkmark"></span>
-                  <div className="member-info">
-                    <span className="member-name">{user.name}</span>
-                    <span className="member-email">{user.email}</span>
-                  </div>
-                </label>
-              ))}
-            </div>
+            <label htmlFor="member-search">Add Members</label>
+            <p className="form-help">Search by name or email. You can add more members later.</p>
+            <input
+              type="text"
+              id="member-search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search for a friend..."
+              autoComplete="off"
+            />
+            {searching && <p className="form-help">Searching...</p>}
+            {searchResults.length > 0 && (
+              <div className="search-results">
+                {searchResults.map((u) => (
+                  <button type="button" key={u.id} className="search-result" onClick={() => invite(u)}>
+                    <span className="avatar-sm">{initial(u.name)}</span>
+                    <span className="member-info">
+                      <span className="member-name">{u.name}</span>
+                      <span className="member-email">{u.email}</span>
+                    </span>
+                    <span className="add-hint">+ Add</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {invited.length > 0 && (
+              <div className="invited-chips">
+                {invited.map((u) => (
+                  <span key={u.id} className="invited-chip">
+                    {u.name}
+                    <button type="button" onClick={() => uninvite(u.id)} aria-label={`Remove ${u.name}`}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="form-group">
             <div className="group-preview">
               <h4>Group Preview</h4>
               <div className="preview-info">
-                <p><strong>Name:</strong> {formData.name || 'Untitled Group'}</p>
-                <p><strong>Members:</strong> {1 + formData.memberIds.length} (including you)</p>
-                {formData.description && (
-                  <p><strong>Description:</strong> {formData.description}</p>
-                )}
+                <p><strong>Name:</strong> {name || 'Untitled Group'}</p>
+                <p><strong>Members:</strong> {1 + invited.length} (including you)</p>
               </div>
             </div>
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="cancel-button" onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className="submit-button">
-              Create Group
+            <button type="button" className="cancel-button" onClick={onClose}>Cancel</button>
+            <button type="submit" className="submit-button" disabled={submitting}>
+              {submitting ? 'Creating...' : 'Create Group'}
             </button>
           </div>
         </form>
@@ -150,4 +162,3 @@ export function CreateGroupModal({ onClose, onCreateGroup, user }) {
     </div>
   );
 }
-

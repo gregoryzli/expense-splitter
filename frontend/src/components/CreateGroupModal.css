@@ -117,60 +117,83 @@
   margin: 4px 0 12px 0;
 }
 
-.members-list {
+.search-results {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px;
   background: #f7fafc;
+  margin-bottom: 12px;
 }
 
-.member-option {
+.search-result {
   display: flex;
   align-items: center;
   gap: 12px;
-  cursor: pointer;
+  width: 100%;
+  background: transparent;
   padding: 8px;
   border-radius: 6px;
-  transition: background-color 0.2s ease;
+  text-align: left;
 }
 
-.member-option:hover {
+.search-result:hover {
   background: white;
 }
 
-.member-option input[type="checkbox"] {
-  display: none;
-}
-
-.checkmark {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #e2e8f0;
-  border-radius: 4px;
-  position: relative;
-  transition: all 0.2s ease;
+.avatar-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   flex-shrink: 0;
-}
-
-.member-option input[type="checkbox"]:checked + .checkmark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: #667eea;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
-.member-option input[type="checkbox"]:checked + .checkmark::after {
-  content: '✓';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
+.add-hint {
+  margin-left: auto;
+  color: #667eea;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.invited-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.invited-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #edf2f7;
+  color: #2d3748;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.invited-chip button {
+  background: none;
+  color: #718096;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.invited-chip button:hover {
+  color: #c53030;
 }
 
 .member-info {

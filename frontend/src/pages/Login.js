@@ -1,101 +1,64 @@
-import React, { useState } from 'react';
-import './Login.css';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import "./Login.css";
 
-export function Login({ onLogin }) {
+export function Login() {
+  const { login, register } = useAuth();
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    setError('');
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-
-    if (isForgotPassword) {
-      // Handle forgot password
-      if (!formData.email) {
-        setError('Please enter your email address');
-        return;
-      }
-      alert('Password reset link sent to your email!');
-      setIsForgotPassword(false);
-      return;
-    }
+    setError("");
 
     if (isLogin) {
-      // Handle login
       if (!formData.email || !formData.password) {
-        setError('Please fill in all fields');
+        setError("Please fill in all fields");
         return;
       }
-      // Mock login - in real app, this would call your backend
-      onLogin({
-        id: 1,
-        name: 'John Doe',
-        email: formData.email
-      });
     } else {
-      // Handle sign up
       if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-        setError('Please fill in all fields');
+        setError("Please fill in all fields");
         return;
       }
       if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match');
+        setError("Passwords do not match");
         return;
       }
-      if (formData.password.length < 6) {
-        setError('Password must be at least 6 characters');
+      if (formData.password.length < 8) {
+        setError("Password must be at least 8 characters");
         return;
       }
-      // Mock sign up - in real app, this would call your backend
-      onLogin({
-        id: 1,
-        name: formData.name,
-        email: formData.email
-      });
+    }
+
+    setSubmitting(true);
+    try {
+      if (isLogin) {
+        await login(formData.email, formData.password);
+      } else {
+        await register(formData.name, formData.email, formData.password);
+      }
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      email: '',
-      password: '',
-      confirmPassword: ''
-    });
-    setError('');
-  };
-
-  const switchToLogin = () => {
-    setIsLogin(true);
-    setIsForgotPassword(false);
-    resetForm();
-  };
-
-  const switchToSignUp = () => {
-    setIsLogin(false);
-    setIsForgotPassword(false);
-    resetForm();
-  };
-
-  const switchToForgotPassword = () => {
-    setIsForgotPassword(true);
-    setIsLogin(false);
-    resetForm();
+  const switchMode = (toLogin) => {
+    setIsLogin(toLogin);
+    setFormData({ name: "", email: "", password: "", confirmPassword: "" });
+    setError("");
   };
 
   return (
@@ -108,8 +71,8 @@ export function Login({ onLogin }) {
 
         <form onSubmit={handleSubmit} className="login-form">
           {error && <div className="error-message">{error}</div>}
-          
-          {!isLogin && !isForgotPassword && (
+
+          {!isLogin && (
             <div className="form-group">
               <label htmlFor="name">Full Name</label>
               <input
@@ -137,22 +100,20 @@ export function Login({ onLogin }) {
             />
           </div>
 
-          {!isForgotPassword && (
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                placeholder="Enter your password"
-                required
-              />
-            </div>
-          )}
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              placeholder="Enter your password"
+              required
+            />
+          </div>
 
-          {!isLogin && !isForgotPassword && (
+          {!isLogin && (
             <div className="form-group">
               <label htmlFor="confirmPassword">Confirm Password</label>
               <input
@@ -167,56 +128,24 @@ export function Login({ onLogin }) {
             </div>
           )}
 
-          <button type="submit" className="submit-button">
-            {isForgotPassword ? 'Send Reset Link' : isLogin ? 'Login' : 'Sign Up'}
+          <button type="submit" className="submit-button" disabled={submitting}>
+            {submitting ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
           </button>
         </form>
 
         <div className="login-footer">
-          {isLogin && !isForgotPassword && (
-            <>
-              <button 
-                type="button" 
-                className="link-button"
-                onClick={switchToForgotPassword}
-              >
-                Forgot Password?
-              </button>
-              <p>
-                Don't have an account?{' '}
-                <button 
-                  type="button" 
-                  className="link-button"
-                  onClick={switchToSignUp}
-                >
-                  Sign Up
-                </button>
-              </p>
-            </>
-          )}
-
-          {!isLogin && !isForgotPassword && (
+          {isLogin ? (
             <p>
-              Already have an account?{' '}
-              <button 
-                type="button" 
-                className="link-button"
-                onClick={switchToLogin}
-              >
-                Login
+              Don't have an account?{" "}
+              <button type="button" className="link-button" onClick={() => switchMode(false)}>
+                Sign Up
               </button>
             </p>
-          )}
-
-          {isForgotPassword && (
+          ) : (
             <p>
-              Remember your password?{' '}
-              <button 
-                type="button" 
-                className="link-button"
-                onClick={switchToLogin}
-              >
-                Back to Login
+              Already have an account?{" "}
+              <button type="button" className="link-button" onClick={() => switchMode(true)}>
+                Login
               </button>
             </p>
           )}
@@ -225,4 +154,3 @@ export function Login({ onLogin }) {
     </div>
   );
 }
-

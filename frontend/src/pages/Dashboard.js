@@ -1,134 +1,117 @@
-import React, { useState, useEffect } from 'react';
-import { NavigationMenu } from '../components/NavigationMenu';
-import { ExpenseList } from '../components/ExpenseList';
-import { AddExpenseModal } from '../components/AddExpenseModal';
-import { Profile } from '../components/Profile';
-import { PayLater } from '../components/PayLater';
-import { About } from '../components/About';
-import { Settings } from '../components/Settings';
-import { GroupSelector } from '../components/GroupSelector';
-import { CreateGroupModal } from '../components/CreateGroupModal';
-import { GroupList } from '../components/GroupList';
-import { GroupDetails } from '../components/GroupDetails';
-import { mockGroups, getGroupsByUserId, getExpensesByGroupId } from '../lib/mockData';
-import './Dashboard.css';
+import React, { useCallback, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { NavigationMenu } from "../components/NavigationMenu";
+import { Profile } from "../components/Profile";
+import { About } from "../components/About";
+import { Settings } from "../components/Settings";
+import { GroupSelector } from "../components/GroupSelector";
+import { CreateGroupModal } from "../components/CreateGroupModal";
+import { GroupList } from "../components/GroupList";
+import { GroupDetails } from "../components/GroupDetails";
+import { LoadingState, ErrorBanner } from "../components/AsyncState";
+import { useAuth } from "../context/AuthContext";
+import { useAsync } from "../hooks/useAsync";
+import { api } from "../lib/api";
+import "./Dashboard.css";
 
-export function Dashboard({ user, onLogout }) {
-  const [currentView, setCurrentView] = useState('home');
+export function Dashboard() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [currentView, setCurrentView] = useState("home");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [groups, setGroups] = useState([]);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
-  const [expenses, setExpenses] = useState([]);
 
-  // Load user's groups on component mount
-  useEffect(() => {
-    const userGroups = getGroupsByUserId(user.id);
-    setGroups(userGroups);
-    // Default to "Your Groups" (no auto-selection)
-    setSelectedGroupId(null);
-  }, [user.id]);
+  const fetchGroups = useCallback(() => api.get("/groups"), []);
+  const { data: groups, loading, error, refetch } = useAsync(fetchGroups);
 
-  // Update expenses when selected group changes
-  useEffect(() => {
-    if (selectedGroupId) {
-      const groupExpenses = getExpensesByGroupId(selectedGroupId);
-      setExpenses(groupExpenses);
-    }
-  }, [selectedGroupId]);
-
-  const addExpense = (newExpense) => {
-    setExpenses([newExpense, ...expenses]);
-    setIsAddExpenseModalOpen(false);
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
   };
 
-  const addGroup = (newGroup) => {
-    setGroups([newGroup, ...groups]);
-    setSelectedGroupId(newGroup.id);
+  const handleGroupCreated = (newGroup) => {
     setIsCreateGroupModalOpen(false);
+    setSelectedGroupId(newGroup.id);
+    refetch();
   };
 
   const renderCurrentView = () => {
-    switch (currentView) {
-      case 'profile':
-        return <Profile user={user} onLogout={onLogout} />;
-      case 'pay-later':
-        return <PayLater expenses={expenses} />;
-      case 'about':
-        return <About />;
-      case 'settings':
-        return <Settings user={user} />;
-      default:
-        return selectedGroupId ? (
-          <GroupDetails
-            groupId={selectedGroupId}
-            onBack={() => setSelectedGroupId(null)}
-            user={user}
-            onExpenseAdded={(e) => setExpenses([e, ...expenses])}
-          />
-        ) : (
-          <GroupList
-            groups={groups}
-            onCreateGroup={() => setIsCreateGroupModalOpen(true)}
-            onOpenGroup={(id) => setSelectedGroupId(id)}
-          />
-        );
+    if (currentView === "profile") return <Profile user={user} groups={groups || []} onLogout={handleLogout} />;
+    if (currentView === "about") return <About />;
+    if (currentView === "settings") return <Settings />;
+
+    if (selectedGroupId) {
+      return (
+        <GroupDetails
+          groupId={selectedGroupId}
+          currentUser={user}
+          onBack={() => setSelectedGroupId(null)}
+          onGroupChanged={refetch}
+        />
+      );
     }
+
+    if (loading) return <LoadingState label="Loading your groups..." />;
+    if (error) return <ErrorBanner error={error} onRetry={refetch} />;
+
+    return (
+      <GroupList
+        groups={groups || []}
+        onCreateGroup={() => setIsCreateGroupModalOpen(true)}
+        onOpenGroup={(id) => setSelectedGroupId(id)}
+      />
+    );
   };
 
-  const selectedGroup = groups.find(g => g.id === selectedGroupId);
+  const selectedGroup = (groups || []).find((g) => g.id === selectedGroupId);
 
   return (
     <div className="dashboard">
-      <NavigationMenu 
+      <NavigationMenu
         isOpen={isMenuOpen}
         onToggle={() => setIsMenuOpen(!isMenuOpen)}
         currentView={currentView}
-        onViewChange={setCurrentView}
+        onViewChange={(view) => {
+          setCurrentView(view);
+          // Every nav item, including "Groups", should return to the group
+          // list -- otherwise clicking Home while a group is open just
+          // closes the menu and leaves you looking at the same group.
+          setSelectedGroupId(null);
+        }}
         user={user}
       />
-      
-      <div className={`dashboard-content ${isMenuOpen ? 'menu-open' : ''}`}>
+
+      <div className={`dashboard-content ${isMenuOpen ? "menu-open" : ""}`}>
         <header className="dashboard-header">
           <div className="header-left">
-            <button 
-              className="menu-toggle"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
+            <button className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               <span></span>
               <span></span>
               <span></span>
             </button>
           </div>
-          
+
           <div className="header-center">
             <h1>SplitPay</h1>
             {selectedGroup && (
-              <GroupSelector 
-                groups={groups}
+              <GroupSelector
+                groups={groups || []}
                 selectedGroupId={selectedGroupId}
                 onGroupChange={setSelectedGroupId}
                 onCreateGroup={() => setIsCreateGroupModalOpen(true)}
               />
             )}
           </div>
-          
+
           <div className="header-actions"></div>
         </header>
 
-        <main className="dashboard-main">
-          {renderCurrentView()}
-        </main>
+        <main className="dashboard-main">{renderCurrentView()}</main>
       </div>
 
       {isCreateGroupModalOpen && (
-        <CreateGroupModal 
-          onClose={() => setIsCreateGroupModalOpen(false)}
-          onCreateGroup={addGroup}
-          user={user}
-        />
+        <CreateGroupModal onClose={() => setIsCreateGroupModalOpen(false)} onCreateGroup={handleGroupCreated} />
       )}
     </div>
   );
