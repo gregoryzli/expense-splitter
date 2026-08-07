@@ -12,7 +12,10 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:db:setup": "DATABASE_URL=\"mysql://root:devpassword@localhost:3306/expense_splitter_test\" prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^6.16.3",
@@ -31,8 +34,11 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.5",
+    "@types/supertest": "^7.2.1",
     "prisma": "^6.16.3",
+    "supertest": "^7.2.2",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.10"
   }
 }
