@@ -1,5 +1,9 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+// HashRouter, not BrowserRouter: this deploys to GitHub Pages, which serves
+// static files with no server-side rewrite -- a direct link or refresh on
+// /dashboard would 404 under BrowserRouter. The #/dashboard URLs are less
+// pretty, but need zero extra config (no 404.html redirect hack).
+import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";

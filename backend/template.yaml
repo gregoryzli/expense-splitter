@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Expense Splitter backend: the same Express/Prisma/MySQL app used for local
+  dev and docker-compose, deployed as a container-image Lambda function
+  behind a Function URL via the Lambda Web Adapter (see Dockerfile). No
+  API Gateway -- Function URLs are simpler and free for a demo-traffic app.
+
+Parameters:
+  DatabaseUrl:
+    Type: String
+    NoEcho: true
+    Description: mysql://user:password@host:3306/dbname
+  JwtSecret:
+    Type: String
+    NoEcho: true
+    Description: Long random string used to sign auth JWTs
+  JwtExpiresIn:
+    Type: String
+    Default: 7d
+  CorsOrigin:
+    Type: String
+    Description: The deployed frontend's origin, e.g. https://<user>.github.io
+
+Resources:
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      MemorySize: 512
+      Timeout: 15
+      Architectures:
+        - arm64 # native build on Apple Silicon (avoids flaky QEMU amd64 emulation); also cheaper on Lambda
+      FunctionUrlConfig:
+        AuthType: NONE
+      Environment:
+        Variables:
+          DATABASE_URL: !Ref DatabaseUrl
+          JWT_SECRET: !Ref JwtSecret
+          JWT_EXPIRES_IN: !Ref JwtExpiresIn
+          CORS_ORIGIN: !Ref CorsOrigin
+          COOKIE_SECURE: "true" # frontend and backend are cross-origin in this deployment
+          NODE_ENV: production
+          PORT: "8080" # the Lambda Web Adapter's default target port
+          AWS_LWA_READINESS_CHECK_PATH: /health
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .
+      DockerTag: latest
+
+Outputs:
+  FunctionUrl:
+    Description: Public HTTPS endpoint for the API -- this is the frontend's REACT_APP_API_URL (append /api)
+    Value: !GetAtt ApiFunctionUrl.FunctionUrl
