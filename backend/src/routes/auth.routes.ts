@@ -12,11 +12,16 @@ const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // keep in sync with JWT_EXPI
 const BCRYPT_ROUNDS = 12;
 
 function cookieOptions() {
-  const isProd = process.env.NODE_ENV === "production";
+  // Deliberately not just `NODE_ENV === "production"`: a production-built
+  // image running locally over plain HTTP (e.g. docker-compose) still needs
+  // secure:false, or the browser silently drops the cookie and login
+  // appears to "work" (200 response) while every subsequent request 401s.
+  // Real cross-origin HTTPS deployments set COOKIE_SECURE=true explicitly.
+  const secure = process.env.COOKIE_SECURE === "true";
   return {
     httpOnly: true,
-    secure: isProd,
-    sameSite: (isProd ? "none" : "lax") as "none" | "lax",
+    secure,
+    sameSite: (secure ? "none" : "lax") as "none" | "lax",
     maxAge: COOKIE_MAX_AGE_MS,
   };
 }

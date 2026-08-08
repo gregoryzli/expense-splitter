@@ -1,0 +1,39 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: devpassword
+      MYSQL_DATABASE: expense_splitter_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pdevpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql://root:devpassword@mysql:3306/expense_splitter_db
+      JWT_SECRET: dev-only-secret-do-not-use-in-production-CHANGE-ME
+      JWT_EXPIRES_IN: 7d
+      PORT: 3001
+      NODE_ENV: production
+      CORS_ORIGIN: http://localhost:3000
+      # Plain HTTP on localhost -- see the comment on cookieOptions() in
+      # src/routes/auth.routes.ts for why this must stay false here even
+      # though NODE_ENV is production.
+      COOKIE_SECURE: "false"
+    ports:
+      - "3001:3001"
+
+volumes:
+  mysql-data:
