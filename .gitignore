@@ -15,12 +15,6 @@ node_modules/
 /build
 /dist
 
-# AWS SAM
-.aws-sam/
-# sam deploy --guided writes parameter values here, including NoEcho ones
-# (NoEcho only masks the CLI prompt, not the saved file) -- never commit this.
-samconfig.toml
-
 # misc
 .DS_Store
 npm-debug.log*

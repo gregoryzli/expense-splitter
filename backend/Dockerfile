@@ -18,14 +18,6 @@ RUN apk add --no-cache openssl
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Lambda Web Adapter: an AWS-maintained extension that lets this exact
-# image run on Lambda (behind a Function URL) with zero app code changes --
-# it's a sidecar that translates Lambda invocations into normal HTTP
-# requests against the server this image already runs. A no-op outside
-# Lambda (docker run / docker-compose / any other host never loads it),
-# so the same image serves both without a build-arg branch.
-COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 /lambda-adapter /opt/extensions/lambda-adapter
-
 COPY package*.json ./
 RUN npm ci --omit=dev
 

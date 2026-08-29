@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: expense-splitter-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: COOKIE_SECURE
+        value: "true" # frontend (GitHub Pages) and backend (Render) are cross-origin
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: DATABASE_URL
+        sync: false # set manually in the Render dashboard -- TiDB Serverless connection string
+      - key: JWT_SECRET
+        sync: false # set manually -- long random string, e.g. `openssl rand -base64 48`
+      - key: CORS_ORIGIN
+        sync: false # set manually once the GitHub Pages URL is known, e.g. https://<you>.github.io

@@ -37,10 +37,10 @@ jobs:
       - name: Build
         env:
           # Set once in Settings -> Secrets and variables -> Actions -> Variables,
-          # after the backend has a Lambda Function URL to point at (see
-          # backend/template.yaml's Outputs). CRA inlines this at build time,
-          # so the workflow needs it even though the app never reads it from
-          # the Actions environment directly.
+          # after the backend has a Render URL to point at (see
+          # DEPLOYMENT.md). CRA inlines this at build time, so the workflow
+          # needs it even though the app never reads it from the Actions
+          # environment directly.
           REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL }}
         run: npm run build
 
