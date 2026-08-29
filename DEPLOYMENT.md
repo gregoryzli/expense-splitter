@@ -32,10 +32,24 @@ no code changes, which is simpler than the Lambda path was.)
    DATABASE_URL="mysql://...?sslaccept=strict" npx prisma migrate deploy
    ```
 
-## 2. Deploy the backend to Render
+## 2. Push the repo to GitHub
+
+This repo has never been pushed anywhere (`git remote -v` is empty). Create
+an empty repo on GitHub (no README/gitignore -- this repo already has
+both), then:
+
+```bash
+git remote add origin git@github.com:<you>/expense-splitter.git
+git push -u origin main
+```
+
+Render's Blueprint deploy (next step) reads `render.yaml` via its GitHub
+integration, so the repo needs to exist there first.
+
+## 3. Deploy the backend to Render
 
 1. Sign up at [render.com](https://render.com) and connect your GitHub
-   account (needed after step 4 below, once this repo is pushed).
+   account.
 2. **New +** -> **Blueprint** -> pick this repo. Render reads `render.yaml`
    at the root and creates the `expense-splitter-api` web service from
    `backend/Dockerfile` automatically.
@@ -59,17 +73,6 @@ workflow in step 5 avoids this for anyone clicking the link, but it's
 worth a line in the resume README regardless so a cold hit doesn't read as
 a bug.
 
-## 3. Push the repo to GitHub
-
-This repo has never been pushed anywhere (`git remote -v` is empty). Create
-an empty repo on GitHub (no README/gitignore -- this repo already has
-both), then:
-
-```bash
-git remote add origin git@github.com:<you>/expense-splitter.git
-git push -u origin main
-```
-
 ## 4. Enable GitHub Pages
 
 Repo -> **Settings** -> **Pages** -> under **Build and deployment**, set
@@ -81,7 +84,7 @@ Before the first real deploy, set the backend URL it needs to build against:
 Repo -> **Settings** -> **Secrets and variables** -> **Actions** ->
 **Variables** tab -> **New repository variable** -> name
 `REACT_APP_API_URL`, value `https://expense-splitter-api-xxxx.onrender.com/api`
-from step 2. (It's a variable, not a secret -- it's a public URL, nothing
+from step 3. (It's a variable, not a secret -- it's a public URL, nothing
 sensitive -- but Actions needs it set either way since CRA inlines env
 vars at build time.)
 
