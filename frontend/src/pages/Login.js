@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import logoMark from "../assets/logo-mark.png";
 import "./Login.css";
 
 export function Login() {
@@ -65,6 +66,7 @@ export function Login() {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
+          <img src={logoMark} alt="" className="login-logo" />
           <h1>SplitPay</h1>
           <p>Split expenses with friends easily</p>
         </div>

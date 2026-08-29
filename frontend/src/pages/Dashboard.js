@@ -12,6 +12,7 @@ import { LoadingState, ErrorBanner } from "../components/AsyncState";
 import { useAuth } from "../context/AuthContext";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
+import logoMark from "../assets/logo-mark.png";
 import "./Dashboard.css";
 
 export function Dashboard() {
@@ -93,7 +94,10 @@ export function Dashboard() {
           </div>
 
           <div className="header-center">
-            <h1>SplitPay</h1>
+            <div className="brand">
+              <img src={logoMark} alt="" className="brand-mark" />
+              <h1>SplitPay</h1>
+            </div>
             {selectedGroup && (
               <GroupSelector
                 groups={groups || []}
