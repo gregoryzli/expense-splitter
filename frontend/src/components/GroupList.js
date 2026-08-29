@@ -15,7 +15,7 @@ function BalanceChip({ amount }) {
 
 export function GroupList({ groups, onCreateGroup, onOpenGroup }) {
   return (
-    <div className="group-list">
+    <div className="groups-page">
       <div className="group-list-header">
         <h2>Your Groups</h2>
         <button className="create-group-btn" onClick={onCreateGroup}>+ Create Group</button>
@@ -23,7 +23,7 @@ export function GroupList({ groups, onCreateGroup, onOpenGroup }) {
 
       {groups.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">👥</div>
+          <div className="groups-empty-icon">👥</div>
           <h3>No groups yet</h3>
           <p>Create a group to start splitting expenses with friends.</p>
           <button className="create-first-group" onClick={onCreateGroup}>Create your first group</button>

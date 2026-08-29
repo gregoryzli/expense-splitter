@@ -15,6 +15,8 @@ export function GroupDetails({ groupId, currentUser, onBack, onGroupChanged }) {
   const [pendingIds, setPendingIds] = useState([]);
   const [listError, setListError] = useState(null);
   const [refreshSignal, setRefreshSignal] = useState(0);
+  const [leaveError, setLeaveError] = useState(null);
+  const [leaving, setLeaving] = useState(false);
 
   const fetchGroup = useCallback(() => api.get(`/groups/${groupId}`), [groupId]);
   const { data: group, loading: groupLoading, error: groupError } = useAsync(fetchGroup, [groupId]);
@@ -94,6 +96,25 @@ export function GroupDetails({ groupId, currentUser, onBack, onGroupChanged }) {
     group &&
     (expense.paidBy?.id === currentUser.id || group.createdById === currentUser.id);
 
+  const handleLeaveGroup = async () => {
+    const isLastMember = group.members.length === 1;
+    const confirmMessage = isLastMember
+      ? `You're the last member of "${group.name}" -- leaving will permanently delete the group and all its expenses. Continue?`
+      : `Leave "${group.name}"? You'll need to be re-invited to rejoin.`;
+    if (!window.confirm(confirmMessage)) return;
+
+    setLeaveError(null);
+    setLeaving(true);
+    try {
+      await api.delete(`/groups/${groupId}/members/${currentUser.id}`);
+      onGroupChanged?.();
+      onBack();
+    } catch (err) {
+      setLeaveError(err.message || 'Could not leave the group');
+      setLeaving(false);
+    }
+  };
+
   if (groupLoading) return <LoadingState label="Loading group..." />;
   if (groupError) return <ErrorBanner error={groupError} />;
   if (!group) return null;
@@ -106,7 +127,12 @@ export function GroupDetails({ groupId, currentUser, onBack, onGroupChanged }) {
           <h2>{group.name}</h2>
           <p>{memberCountLabel(group.members.length)}</p>
         </div>
+        <button className="leave-group-btn" onClick={handleLeaveGroup} disabled={leaving}>
+          {leaving ? 'Leaving...' : 'Leave Group'}
+        </button>
       </div>
+
+      {leaveError && <ErrorBanner error={{ message: leaveError }} onRetry={() => setLeaveError(null)} />}
 
       {group.description && <p className="group-details-desc">{group.description}</p>}
 

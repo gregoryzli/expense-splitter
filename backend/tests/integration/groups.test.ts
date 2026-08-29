@@ -125,13 +125,38 @@ describe("group membership", () => {
     expect(res.status).toBe(409);
   });
 
-  it("blocks removing the group creator", async () => {
+  it("blocks a non-creator from removing another member", async () => {
     const alice = await registerUser({ name: "Alice" });
-    const group = await createGroup(alice, { name: "Trip" });
+    const bob = await registerUser({ name: "Bob" });
+    const carol = await registerUser({ name: "Carol" });
+    const group = await createGroup(alice, { name: "Trip", memberEmails: [bob.email, carol.email] });
+
+    const res = await bob.agent.delete(`/api/groups/${group.id}/members/${carol.user.id}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("lets the creator leave without disbanding the group when other members remain", async () => {
+    const alice = await registerUser({ name: "Alice" });
+    const bob = await registerUser({ name: "Bob" });
+    const group = await createGroup(alice, { name: "Trip", memberEmails: [bob.email] });
 
     const res = await alice.agent.delete(`/api/groups/${group.id}/members/${alice.user.id}`);
-    expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe("CANNOT_REMOVE_CREATOR");
+    expect(res.status).toBe(204);
+
+    const details = await bob.agent.get(`/api/groups/${group.id}`);
+    expect(details.status).toBe(200);
+    expect(details.body.members.map((m: { id: number }) => m.id)).toEqual([bob.user.id]);
+  });
+
+  it("disbands the group when the last member leaves", async () => {
+    const alice = await registerUser({ name: "Alice" });
+    const group = await createGroup(alice, { name: "Solo Trip" });
+
+    const res = await alice.agent.delete(`/api/groups/${group.id}/members/${alice.user.id}`);
+    expect(res.status).toBe(204);
+
+    const details = await alice.agent.get(`/api/groups/${group.id}`);
+    expect(details.status).toBe(404);
   });
 
   it("lets a member with a zero balance leave voluntarily", async () => {

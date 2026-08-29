@@ -140,11 +140,13 @@ router.delete("/:groupId/members/:userId", requireGroupMember, async (req, res) 
   const isSelf = targetUserId === req.user!.id;
   const isCreator = req.group!.createdById === req.user!.id;
 
+  // The creator can leave (isSelf) like any other member -- see the
+  // group-disband branch below. Nobody else can remove them: the check
+  // above already requires isSelf or isCreator, and isCreator can only
+  // ever target someone other than themself here, so there's no path
+  // for a non-creator to reach the creator's own membership row.
   if (!isSelf && !isCreator) {
     throw AppError.forbidden("Only the group creator can remove other members");
-  }
-  if (targetUserId === req.group!.createdById) {
-    throw AppError.badRequest("The group creator can't be removed from the group", "CANNOT_REMOVE_CREATOR");
   }
 
   const balances = await getGroupBalances(groupId);
@@ -153,10 +155,22 @@ router.delete("/:groupId/members/:userId", requireGroupMember, async (req, res) 
     throw AppError.conflict("This member has an outstanding balance and can't be removed yet", "NONZERO_BALANCE");
   }
 
-  const deleted = await prisma.groupMember.deleteMany({ where: { groupId, userId: targetUserId } });
-  if (deleted.count === 0) {
-    throw AppError.notFound("That user isn't a member of this group");
-  }
+  // Wrapped in a transaction so two members leaving at once can't both
+  // read "1 member left" and neither trigger the disband.
+  await prisma.$transaction(async (tx) => {
+    const deleted = await tx.groupMember.deleteMany({ where: { groupId, userId: targetUserId } });
+    if (deleted.count === 0) {
+      throw AppError.notFound("That user isn't a member of this group");
+    }
+
+    const remaining = await tx.groupMember.count({ where: { groupId } });
+    if (remaining === 0) {
+      // Group/Expense/Settlement all cascade-delete their children, so this
+      // one call cleans up expenses, splits, and settlements too.
+      await tx.group.delete({ where: { id: groupId } });
+    }
+  });
+
   res.status(204).send();
 });
 
