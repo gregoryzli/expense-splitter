@@ -14,6 +14,11 @@ export interface MemberBalance extends Balance {
  * This is computed from the ExpenseSplit rows saved at expense-creation
  * time, not re-derived from amount / participantCount -- that's what keeps
  * unequal/percentage splits correct here for free.
+ *
+ * Only CONFIRMED settlements count here -- a settlement starts PENDING
+ * until the counterparty confirms it, specifically so a bad-faith (or
+ * mistaken) "mark as paid" can't shrink what someone owes before the other
+ * side has verified the payment actually happened.
  */
 export async function getGroupBalances(groupId: number): Promise<MemberBalance[]> {
   const members = await prisma.groupMember.findMany({
@@ -36,12 +41,12 @@ export async function getGroupBalances(groupId: number): Promise<MemberBalance[]
     }),
     prisma.settlement.groupBy({
       by: ["fromUserId"],
-      where: { groupId },
+      where: { groupId, status: "CONFIRMED" },
       _sum: { amountCents: true },
     }),
     prisma.settlement.groupBy({
       by: ["toUserId"],
-      where: { groupId },
+      where: { groupId, status: "CONFIRMED" },
       _sum: { amountCents: true },
     }),
   ]);

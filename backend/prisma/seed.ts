@@ -108,7 +108,10 @@ async function main() {
       fromUserId: bob.id,
       toUserId: demo.id,
       amountCents: 20_000,
+      status: "CONFIRMED",
+      initiatedById: bob.id,
       settledAt: daysAgo(2),
+      confirmedAt: daysAgo(2),
     },
   });
 

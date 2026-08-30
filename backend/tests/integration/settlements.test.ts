@@ -60,20 +60,21 @@ describe("GET /api/groups/:groupId/settlements/suggestions", () => {
 });
 
 describe("POST /api/groups/:groupId/settlements", () => {
-  it("records a payment and updates balances accordingly", async () => {
+  it("records a payment as PENDING without changing balances yet", async () => {
     const { alice, bob, group } = await tripWithExpense();
 
     const record = await bob.agent
       .post(`/api/groups/${group.id}/settlements`)
       .send({ fromUserId: bob.user.id, toUserId: alice.user.id, amount: 30 });
     expect(record.status).toBe(201);
+    expect(record.body).toMatchObject({ status: "PENDING", initiatedById: bob.user.id });
 
     const balances = await alice.agent.get(`/api/groups/${group.id}/balances`);
     const byUser = Object.fromEntries(
       balances.body.map((b: { userId: number; balance: number }) => [b.userId, b.balance])
     );
-    expect(byUser[bob.user.id]).toBe(0);
-    expect(byUser[alice.user.id]).toBe(30); // still owed by Carol
+    expect(byUser[bob.user.id]).toBe(-30); // unchanged -- not confirmed yet
+    expect(byUser[alice.user.id]).toBe(60);
   });
 
   it("rejects recording a settlement you're not a party to", async () => {
@@ -97,7 +98,7 @@ describe("POST /api/groups/:groupId/settlements", () => {
     expect(res.status).toBe(422);
   });
 
-  it("appears in settlement history afterward", async () => {
+  it("appears in settlement history as PENDING afterward", async () => {
     const { alice, bob, group } = await tripWithExpense();
     await bob.agent
       .post(`/api/groups/${group.id}/settlements`)
@@ -106,6 +107,101 @@ describe("POST /api/groups/:groupId/settlements", () => {
     const history = await alice.agent.get(`/api/groups/${group.id}/settlements`);
     expect(history.status).toBe(200);
     expect(history.body).toHaveLength(1);
-    expect(history.body[0]).toMatchObject({ amount: 30 });
+    expect(history.body[0]).toMatchObject({ amount: 30, status: "PENDING" });
+  });
+});
+
+describe("POST /api/groups/:groupId/settlements/:settlementId/confirm", () => {
+  it("lets the counterparty confirm, which then updates balances", async () => {
+    const { alice, bob, group } = await tripWithExpense();
+    const record = await bob.agent
+      .post(`/api/groups/${group.id}/settlements`)
+      .send({ fromUserId: bob.user.id, toUserId: alice.user.id, amount: 30 });
+
+    const confirm = await alice.agent.post(`/api/groups/${group.id}/settlements/${record.body.id}/confirm`);
+    expect(confirm.status).toBe(200);
+    expect(confirm.body).toMatchObject({ status: "CONFIRMED" });
+    expect(confirm.body.confirmedAt).toBeTruthy();
+
+    const balances = await alice.agent.get(`/api/groups/${group.id}/balances`);
+    const byUser = Object.fromEntries(
+      balances.body.map((b: { userId: number; balance: number }) => [b.userId, b.balance])
+    );
+    expect(byUser[bob.user.id]).toBe(0);
+    expect(byUser[alice.user.id]).toBe(30);
+  });
+
+  it("blocks the initiator from confirming their own settlement", async () => {
+    const { alice, bob, group } = await tripWithExpense();
+    const record = await bob.agent
+      .post(`/api/groups/${group.id}/settlements`)
+      .send({ fromUserId: bob.user.id, toUserId: alice.user.id, amount: 30 });
+
+    const confirm = await bob.agent.post(`/api/groups/${group.id}/settlements/${record.body.id}/confirm`);
+    expect(confirm.status).toBe(403);
+  });
+
+  it("blocks a non-party from confirming", async () => {
+    const { alice, bob, carol, group } = await tripWithExpense();
+    const record = await bob.agent
+      .post(`/api/groups/${group.id}/settlements`)
+      .send({ fromUserId: bob.user.id, toUserId: alice.user.id, amount: 30 });
+
+    const confirm = await carol.agent.post(`/api/groups/${group.id}/settlements/${record.body.id}/confirm`);
+    expect(confirm.status).toBe(403);
+  });
+
+  it("rejects confirming an already-confirmed settlement", async () => {
+    const { alice, bob, group } = await tripWithExpense();
+    const record = await bob.agent
+      .post(`/api/groups/${group.id}/settlements`)
+      .send({ fromUserId: bob.user.id, toUserId: alice.user.id, amount: 30 });
+    await alice.agent.post(`/api/groups/${group.id}/settlements/${record.body.id}/confirm`);
+
+    const confirmAgain = await alice.agent.post(`/api/groups/${group.id}/settlements/${record.body.id}/confirm`);
+    expect(confirmAgain.status).toBe(409);
+    expect(confirmAgain.body.error.code).toBe("NOT_PENDING");
+  });
+});
+
+describe("DELETE /api/groups/:groupId/settlements/:settlementId", () => {
+  it("lets either party reject a pending settlement, leaving balances untouched", async () => {
+    const { alice, bob, group } = await tripWithExpense();
+    const record = await bob.agent
+      .post(`/api/groups/${group.id}/settlements`)
+      .send({ fromUserId: bob.user.id, toUserId: alice.user.id, amount: 30 });
+
+    const reject = await alice.agent.delete(`/api/groups/${group.id}/settlements/${record.body.id}`);
+    expect(reject.status).toBe(204);
+
+    const history = await alice.agent.get(`/api/groups/${group.id}/settlements`);
+    expect(history.body).toHaveLength(0);
+
+    const balances = await alice.agent.get(`/api/groups/${group.id}/balances`);
+    const byUser = Object.fromEntries(
+      balances.body.map((b: { userId: number; balance: number }) => [b.userId, b.balance])
+    );
+    expect(byUser[bob.user.id]).toBe(-30);
+  });
+
+  it("blocks a non-party from rejecting", async () => {
+    const { alice, bob, carol, group } = await tripWithExpense();
+    const record = await bob.agent
+      .post(`/api/groups/${group.id}/settlements`)
+      .send({ fromUserId: bob.user.id, toUserId: alice.user.id, amount: 30 });
+
+    const reject = await carol.agent.delete(`/api/groups/${group.id}/settlements/${record.body.id}`);
+    expect(reject.status).toBe(403);
+  });
+
+  it("can't reject an already-confirmed settlement", async () => {
+    const { alice, bob, group } = await tripWithExpense();
+    const record = await bob.agent
+      .post(`/api/groups/${group.id}/settlements`)
+      .send({ fromUserId: bob.user.id, toUserId: alice.user.id, amount: 30 });
+    await alice.agent.post(`/api/groups/${group.id}/settlements/${record.body.id}/confirm`);
+
+    const reject = await alice.agent.delete(`/api/groups/${group.id}/settlements/${record.body.id}`);
+    expect(reject.status).toBe(404);
   });
 });

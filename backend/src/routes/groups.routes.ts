@@ -208,11 +208,17 @@ router.get("/:groupId/settlements", requireGroupMember, async (req, res) => {
       fromUser: s.fromUser,
       toUser: s.toUser,
       amount: centsToDollars(s.amountCents),
+      status: s.status,
+      initiatedById: s.initiatedById,
       settledAt: s.settledAt,
+      confirmedAt: s.confirmedAt,
     }))
   );
 });
 
+// Creates a settlement as PENDING -- it does not affect balances (see
+// services/balances.ts) until the counterparty confirms it below. Either
+// party can initiate; whoever doesn't is the one who needs to confirm.
 router.post("/:groupId/settlements", requireGroupMember, validate(createSettlementSchema), async (req, res) => {
   const groupId = req.group!.id;
   const { fromUserId, toUserId, amount } = req.body;
@@ -229,7 +235,14 @@ router.post("/:groupId/settlements", requireGroupMember, validate(createSettleme
   }
 
   const settlement = await prisma.settlement.create({
-    data: { groupId, fromUserId, toUserId, amountCents: dollarsToCents(amount) },
+    data: {
+      groupId,
+      fromUserId,
+      toUserId,
+      amountCents: dollarsToCents(amount),
+      status: "PENDING",
+      initiatedById: req.user!.id,
+    },
     include: { fromUser: memberSelect, toUser: memberSelect },
   });
 
@@ -238,8 +251,70 @@ router.post("/:groupId/settlements", requireGroupMember, validate(createSettleme
     fromUser: settlement.fromUser,
     toUser: settlement.toUser,
     amount: centsToDollars(settlement.amountCents),
+    status: settlement.status,
+    initiatedById: settlement.initiatedById,
     settledAt: settlement.settledAt,
+    confirmedAt: settlement.confirmedAt,
   });
+});
+
+// Only the counterparty (whoever didn't initiate it) can confirm -- that's
+// the verification step: the initiator's own say-so was never enough to
+// move money on the balance sheet.
+router.post("/:groupId/settlements/:settlementId/confirm", requireGroupMember, async (req, res) => {
+  const groupId = req.group!.id;
+  const settlementId = Number(req.params.settlementId);
+
+  const settlement = await prisma.settlement.findFirst({ where: { id: settlementId, groupId } });
+  if (!settlement) {
+    throw AppError.notFound("Settlement not found");
+  }
+  if (settlement.status !== "PENDING") {
+    throw AppError.conflict("This settlement has already been confirmed", "NOT_PENDING");
+  }
+  if (req.user!.id !== settlement.fromUserId && req.user!.id !== settlement.toUserId) {
+    throw AppError.forbidden("You're not a party to this settlement");
+  }
+  if (req.user!.id === settlement.initiatedById) {
+    throw AppError.forbidden("The other party needs to confirm this, not you");
+  }
+
+  const updated = await prisma.settlement.update({
+    where: { id: settlementId },
+    data: { status: "CONFIRMED", confirmedAt: new Date() },
+    include: { fromUser: memberSelect, toUser: memberSelect },
+  });
+
+  res.json({
+    id: updated.id,
+    fromUser: updated.fromUser,
+    toUser: updated.toUser,
+    amount: centsToDollars(updated.amountCents),
+    status: updated.status,
+    initiatedById: updated.initiatedById,
+    settledAt: updated.settledAt,
+    confirmedAt: updated.confirmedAt,
+  });
+});
+
+// Either party can reject/cancel a still-pending settlement: the initiator
+// walking back a mistake, or the counterparty disputing a payment they say
+// never happened. Once CONFIRMED, a settlement is a final record and this
+// route no longer applies (404s look the same as "already gone").
+router.delete("/:groupId/settlements/:settlementId", requireGroupMember, async (req, res) => {
+  const groupId = req.group!.id;
+  const settlementId = Number(req.params.settlementId);
+
+  const settlement = await prisma.settlement.findFirst({ where: { id: settlementId, groupId, status: "PENDING" } });
+  if (!settlement) {
+    throw AppError.notFound("Pending settlement not found");
+  }
+  if (req.user!.id !== settlement.fromUserId && req.user!.id !== settlement.toUserId) {
+    throw AppError.forbidden("You're not a party to this settlement");
+  }
+
+  await prisma.settlement.delete({ where: { id: settlementId } });
+  res.status(204).send();
 });
 
 router.get("/:groupId/expenses", requireGroupMember, async (req, res) => {

@@ -14,13 +14,14 @@ model User {
   passwordHash String   @map("password_hash")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  groupsCreated   Group[]        @relation("GroupCreator")
-  memberships     GroupMember[]
-  expensesPaid    Expense[]      @relation("ExpensePayer")
-  expensesCreated Expense[]      @relation("ExpenseCreator")
-  splits          ExpenseSplit[]
-  settlementsFrom Settlement[]   @relation("SettlementFrom")
-  settlementsTo   Settlement[]   @relation("SettlementTo")
+  groupsCreated       Group[]        @relation("GroupCreator")
+  memberships         GroupMember[]
+  expensesPaid        Expense[]      @relation("ExpensePayer")
+  expensesCreated     Expense[]      @relation("ExpenseCreator")
+  splits              ExpenseSplit[]
+  settlementsFrom     Settlement[]   @relation("SettlementFrom")
+  settlementsTo       Settlement[]   @relation("SettlementTo")
+  settlementsInitiated Settlement[]  @relation("SettlementInitiator")
 
   @@map("users")
 }
@@ -95,17 +96,26 @@ model ExpenseSplit {
   @@map("expense_splits")
 }
 
-model Settlement {
-  id          Int      @id @default(autoincrement())
-  groupId     Int      @map("group_id")
-  fromUserId  Int      @map("from_user_id")
-  toUserId    Int      @map("to_user_id")
-  amountCents Int      @map("amount_cents")
-  settledAt   DateTime @default(now()) @map("settled_at")
+enum SettlementStatus {
+  PENDING
+  CONFIRMED
+}
 
-  group    Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  fromUser User  @relation("SettlementFrom", fields: [fromUserId], references: [id])
-  toUser   User  @relation("SettlementTo", fields: [toUserId], references: [id])
+model Settlement {
+  id            Int              @id @default(autoincrement())
+  groupId       Int              @map("group_id")
+  fromUserId    Int              @map("from_user_id")
+  toUserId      Int              @map("to_user_id")
+  amountCents   Int              @map("amount_cents")
+  status        SettlementStatus @default(PENDING)
+  initiatedById Int              @map("initiated_by")
+  settledAt     DateTime         @default(now()) @map("settled_at")
+  confirmedAt   DateTime?        @map("confirmed_at")
+
+  group       Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  fromUser    User  @relation("SettlementFrom", fields: [fromUserId], references: [id])
+  toUser      User  @relation("SettlementTo", fields: [toUserId], references: [id])
+  initiatedBy User  @relation("SettlementInitiator", fields: [initiatedById], references: [id])
 
   @@index([groupId])
   @@map("settlements")

@@ -31,6 +31,7 @@
 
 .balance-list,
 .suggestion-list,
+.pending-list,
 .history-list {
   list-style: none;
   padding: 0;
@@ -118,6 +119,52 @@
   font-size: 0.8rem;
 }
 
+.pending-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fffaf0;
+  border: 1px solid #feebc8;
+  border-radius: 8px;
+}
+
+.pending-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.confirm-btn {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.confirm-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+}
+
+.reject-btn {
+  background: #fff;
+  border: 1px solid #fed7d7;
+  color: #c53030;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.reject-btn:hover:not(:disabled) {
+  background: #fff5f5;
+}
+
 .history-row {
   display: flex;
   justify-content: space-between;
@@ -139,12 +186,18 @@
 }
 
 @media (max-width: 480px) {
-  .suggestion-row {
+  .suggestion-row,
+  .pending-row {
     flex-direction: column;
     align-items: flex-start;
   }
-  .record-payment-btn {
+  .record-payment-btn,
+  .pending-actions {
     margin-left: 0;
     width: 100%;
+  }
+  .confirm-btn,
+  .reject-btn {
+    flex: 1;
   }
 }

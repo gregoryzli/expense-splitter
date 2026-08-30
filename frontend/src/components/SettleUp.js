@@ -9,7 +9,11 @@ function suggestionKey(s) {
   return `${s.fromUserId}-${s.toUserId}`;
 }
 
-export function SettleUp({ groupId, currentUserId, refreshSignal, onSettled }) {
+function historyKey(h) {
+  return `${h.fromUser.id}-${h.toUser.id}`;
+}
+
+export function SettleUp({ groupId, currentUserId, currency, refreshSignal, onSettled }) {
   const fetchData = useCallback(
     () =>
       Promise.all([
@@ -24,6 +28,7 @@ export function SettleUp({ groupId, currentUserId, refreshSignal, onSettled }) {
   const [recording, setRecording] = useState(null); // key of suggestion being recorded
   const [hidden, setHidden] = useState(new Set()); // optimistically-recorded suggestion keys
   const [rowError, setRowError] = useState(null); // { key, message }
+  const [actingOn, setActingOn] = useState(null); // settlement id being confirmed/rejected
 
   const recordPayment = async (suggestion) => {
     const key = suggestionKey(suggestion);
@@ -52,11 +57,48 @@ export function SettleUp({ groupId, currentUserId, refreshSignal, onSettled }) {
     }
   };
 
+  const confirmSettlement = async (settlement) => {
+    setActingOn(settlement.id);
+    setRowError(null);
+    try {
+      await api.post(`/groups/${groupId}/settlements/${settlement.id}/confirm`);
+      onSettled?.();
+    } catch (err) {
+      setRowError({ key: `pending-${settlement.id}`, message: err.message || 'Could not confirm that payment' });
+    } finally {
+      setActingOn(null);
+    }
+  };
+
+  const rejectSettlement = async (settlement) => {
+    setActingOn(settlement.id);
+    setRowError(null);
+    try {
+      await api.delete(`/groups/${groupId}/settlements/${settlement.id}`);
+      // The suggestion this settlement was hiding should reappear now that
+      // it's gone -- clear it from the optimistic hidden set too, in case
+      // this browser tab is the one that created it.
+      setHidden((prev) => {
+        const next = new Set(prev);
+        next.delete(`${settlement.fromUser.id}-${settlement.toUser.id}`);
+        return next;
+      });
+      onSettled?.();
+    } catch (err) {
+      setRowError({ key: `pending-${settlement.id}`, message: err.message || 'Could not reject that payment' });
+    } finally {
+      setActingOn(null);
+    }
+  };
+
   if (loading) return <LoadingState label="Loading balances..." />;
   if (error) return <ErrorBanner error={error} onRetry={refetch} />;
 
   const { balances, suggestions, history } = data;
-  const visibleSuggestions = suggestions.filter((s) => !hidden.has(suggestionKey(s)));
+  const pending = history.filter((h) => h.status === 'PENDING');
+  const confirmed = history.filter((h) => h.status === 'CONFIRMED');
+  const pendingKeys = new Set(pending.map(historyKey));
+  const visibleSuggestions = suggestions.filter((s) => !hidden.has(suggestionKey(s)) && !pendingKeys.has(suggestionKey(s)));
 
   return (
     <div className="settle-up">
@@ -71,8 +113,8 @@ export function SettleUp({ groupId, currentUserId, refreshSignal, onSettled }) {
                 {b.balanceCents === 0
                   ? 'settled up'
                   : b.balanceCents > 0
-                  ? `owed ${formatCurrency(b.balance)}`
-                  : `owes ${formatCurrency(-b.balance)}`}
+                  ? `owed ${formatCurrency(b.balance, currency)}`
+                  : `owes ${formatCurrency(-b.balance, currency)}`}
               </span>
             </li>
           ))}
@@ -96,7 +138,7 @@ export function SettleUp({ groupId, currentUserId, refreshSignal, onSettled }) {
                   <span className="suggestion-text">
                     <strong>{s.fromUserId === currentUserId ? 'You' : s.fromName}</strong> pays{' '}
                     <strong>{s.toUserId === currentUserId ? 'you' : s.toName}</strong>{' '}
-                    <span className="suggestion-amount">{formatCurrency(s.amount)}</span>
+                    <span className="suggestion-amount">{formatCurrency(s.amount, currency)}</span>
                   </span>
                   {canRecord ? (
                     <button
@@ -117,17 +159,73 @@ export function SettleUp({ groupId, currentUserId, refreshSignal, onSettled }) {
         )}
       </section>
 
-      {history.length > 0 && (
+      {pending.length > 0 && (
+        <section className="settle-section">
+          <h3>Awaiting confirmation</h3>
+          <p className="settle-hint">
+            A payment only counts toward balances once the other person confirms it actually happened.
+          </p>
+          <ul className="pending-list">
+            {pending.map((h) => {
+              const iInitiated = h.initiatedById === currentUserId;
+              const errKey = `pending-${h.id}`;
+              return (
+                <li key={h.id} className="pending-row">
+                  <span>
+                    {h.fromUser.id === currentUserId ? 'You' : h.fromUser.name} paid{' '}
+                    {h.toUser.id === currentUserId ? 'you' : h.toUser.name}{' '}
+                    <span className="suggestion-amount">{formatCurrency(h.amount, currency)}</span>
+                  </span>
+                  {iInitiated ? (
+                    <div className="pending-actions">
+                      <span className="suggestion-waiting">
+                        awaiting {h.fromUser.id === currentUserId ? h.toUser.name : h.fromUser.name}
+                      </span>
+                      <button
+                        className="reject-btn"
+                        onClick={() => rejectSettlement(h)}
+                        disabled={actingOn === h.id}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="pending-actions">
+                      <button
+                        className="confirm-btn"
+                        onClick={() => confirmSettlement(h)}
+                        disabled={actingOn === h.id}
+                      >
+                        {actingOn === h.id ? 'Confirming...' : 'Confirm'}
+                      </button>
+                      <button
+                        className="reject-btn"
+                        onClick={() => rejectSettlement(h)}
+                        disabled={actingOn === h.id}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                  {rowError?.key === errKey && <span className="suggestion-error">{rowError.message}</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {confirmed.length > 0 && (
         <section className="settle-section">
           <h3>Payment history</h3>
           <ul className="history-list">
-            {history.map((h) => (
+            {confirmed.map((h) => (
               <li key={h.id} className="history-row">
                 <span>
                   {h.fromUser.id === currentUserId ? 'You' : h.fromUser.name} paid{' '}
-                  {h.toUser.id === currentUserId ? 'you' : h.toUser.name} {formatCurrency(h.amount)}
+                  {h.toUser.id === currentUserId ? 'you' : h.toUser.name} {formatCurrency(h.amount, currency)}
                 </span>
-                <span className="history-date">{formatDate(h.settledAt)}</span>
+                <span className="history-date">{formatDate(h.confirmedAt || h.settledAt)}</span>
               </li>
             ))}
           </ul>
