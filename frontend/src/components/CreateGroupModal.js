@@ -21,6 +21,11 @@ export function CreateGroupModal({ onClose, onCreateGroup }) {
   const [invited, setInvited] = useState([]);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [friends, setFriends] = useState([]);
+
+  useEffect(() => {
+    api.get('/friends').then(setFriends).catch(() => setFriends([]));
+  }, []);
 
   // Debounced live search against real accounts, replacing the old
   // hardcoded 6-user picker -- you can only add people who've signed up.
@@ -128,6 +133,20 @@ export function CreateGroupModal({ onClose, onCreateGroup }) {
           <div className="form-group">
             <label htmlFor="member-search">Add Members</label>
             <p className="form-help">Search by name or email. You can add more members later.</p>
+
+            {friends.filter((f) => !invited.some((u) => u.id === f.id)).length > 0 && (
+              <div className="friend-quickadd">
+                {friends
+                  .filter((f) => !invited.some((u) => u.id === f.id))
+                  .map((f) => (
+                    <button type="button" key={f.id} className="friend-chip" onClick={() => invite(f)}>
+                      <span className="avatar-sm">{initial(f.name)}</span>
+                      {f.name}
+                    </button>
+                  ))}
+              </div>
+            )}
+
             <input
               type="text"
               id="member-search"

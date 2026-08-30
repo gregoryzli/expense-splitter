@@ -11,6 +11,7 @@ async function reset() {
   await prisma.expense.deleteMany();
   await prisma.groupMember.deleteMany();
   await prisma.group.deleteMany();
+  await prisma.friend.deleteMany();
   await prisma.user.deleteMany();
 }
 
@@ -28,6 +29,21 @@ async function main() {
       { name: "Carol Nguyen", email: "carol@example.com" },
     ].map((u) => prisma.user.create({ data: { ...u, passwordHash } }))
   );
+
+  console.log("Saving friend connections for the demo account...");
+  // One-directional on purpose (see Friend model comment) -- demo has
+  // saved everyone so the Friends page and group-creation quick-add chips
+  // aren't empty on first login, but carol hasn't saved anyone back, which
+  // demonstrates that saving isn't mutual.
+  await prisma.friend.createMany({
+    data: [
+      { userId: demo.id, friendId: alice.id },
+      { userId: demo.id, friendId: bob.id },
+      { userId: demo.id, friendId: carol.id },
+      { userId: alice.id, friendId: demo.id },
+      { userId: bob.id, friendId: demo.id },
+    ],
+  });
 
   console.log("Creating 'Roommates' group (mid-settlement)...");
   const roommates = await prisma.group.create({

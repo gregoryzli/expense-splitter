@@ -4,6 +4,7 @@ import './NavigationMenu.css';
 export function NavigationMenu({ isOpen, onToggle, currentView, onViewChange, user }) {
   const menuItems = [
     { id: 'home', label: 'Groups', icon: '🏠' },
+    { id: 'friends', label: 'Friends', icon: '👥' },
     { id: 'about', label: 'About', icon: 'ℹ️' },
     { id: 'settings', label: 'Settings', icon: '⚙️' }
   ];

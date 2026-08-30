@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth.routes";
 import usersRoutes from "./routes/users.routes";
 import groupsRoutes from "./routes/groups.routes";
 import expensesRoutes from "./routes/expenses.routes";
+import friendsRoutes from "./routes/friends.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 export function createApp() {
@@ -25,6 +26,7 @@ export function createApp() {
   app.use("/api/users", usersRoutes);
   app.use("/api/groups", groupsRoutes);
   app.use("/api/expenses", expensesRoutes);
+  app.use("/api/friends", friendsRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

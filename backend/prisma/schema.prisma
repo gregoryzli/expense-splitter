@@ -22,8 +22,26 @@ model User {
   settlementsFrom     Settlement[]   @relation("SettlementFrom")
   settlementsTo       Settlement[]   @relation("SettlementTo")
   settlementsInitiated Settlement[]  @relation("SettlementInitiator")
+  savedFriends        Friend[]       @relation("FriendOwner")
+  friendedBy          Friend[]       @relation("FriendTarget")
 
   @@map("users")
+}
+
+// A one-directional saved-contacts list, not a mutual relationship: saving
+// someone doesn't notify them or add you to their list. It just lets you
+// skip re-searching for people you split expenses with regularly.
+model Friend {
+  userId    Int      @map("user_id")
+  friendId  Int      @map("friend_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User @relation("FriendOwner", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendTarget", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@id([userId, friendId])
+  @@index([friendId])
+  @@map("friends")
 }
 
 model Group {

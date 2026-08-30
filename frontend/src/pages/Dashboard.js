@@ -4,6 +4,7 @@ import { NavigationMenu } from "../components/NavigationMenu";
 import { Profile } from "../components/Profile";
 import { About } from "../components/About";
 import { Settings } from "../components/Settings";
+import { Friends } from "../components/Friends";
 import { GroupSelector } from "../components/GroupSelector";
 import { CreateGroupModal } from "../components/CreateGroupModal";
 import { GroupList } from "../components/GroupList";
@@ -41,6 +42,7 @@ export function Dashboard() {
     if (currentView === "profile") return <Profile user={user} groups={groups || []} onLogout={handleLogout} />;
     if (currentView === "about") return <About />;
     if (currentView === "settings") return <Settings />;
+    if (currentView === "friends") return <Friends />;
 
     if (selectedGroupId) {
       return (

@@ -21,7 +21,13 @@ router.get("/", requireAuth, async (req, res) => {
     take: 10,
   });
 
-  res.json(users);
+  const friendRows = await prisma.friend.findMany({
+    where: { userId: req.user!.id, friendId: { in: users.map((u) => u.id) } },
+    select: { friendId: true },
+  });
+  const friendIds = new Set(friendRows.map((f) => f.friendId));
+
+  res.json(users.map((u) => ({ ...u, isFriend: friendIds.has(u.id) })));
 });
 
 export default router;
