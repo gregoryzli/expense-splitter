@@ -166,8 +166,8 @@ Backend and frontend deploy independently and auto-redeploy on push to
 via a GitHub Actions workflow to GitHub Pages
 (`.github/workflows/deploy-pages.yml`). A second workflow
 (`.github/workflows/keep-alive.yml`) pings the backend every 14 minutes to
-offset Render's free-tier idle spindown. Full first-time setup steps are in
-[DEPLOYMENT.md](DEPLOYMENT.md).
+offset Render's free-tier idle spindown. Database is TiDB Serverless
+(MySQL-wire-compatible), migrated via `prisma migrate deploy`.
 
 ## What's explicitly out of scope
 
