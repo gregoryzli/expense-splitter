@@ -11,6 +11,24 @@ describe("POST /api/groups", () => {
     expect(res.body.members).toHaveLength(1);
     expect(res.body.members[0].id).toBe(alice.user.id);
     expect(res.body.createdById).toBe(alice.user.id);
+    expect(res.body.currency).toBe("USD"); // default when not specified
+  });
+
+  it("accepts a chosen currency label at creation", async () => {
+    const alice = await registerUser({ name: "Alice" });
+    const res = await alice.agent.post("/api/groups").send({ name: "Euro Trip", currency: "EUR" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.currency).toBe("EUR");
+
+    const details = await alice.agent.get(`/api/groups/${res.body.id}`);
+    expect(details.body.currency).toBe("EUR");
+  });
+
+  it("rejects an unsupported currency code", async () => {
+    const alice = await registerUser({ name: "Alice" });
+    const res = await alice.agent.post("/api/groups").send({ name: "Trip", currency: "XYZ" });
+    expect(res.status).toBe(400);
   });
 
   it("adds invited members by email", async () => {

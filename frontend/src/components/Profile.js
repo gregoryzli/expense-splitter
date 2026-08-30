@@ -5,6 +5,11 @@ import { formatCurrency, initial } from '../lib/format';
 export function Profile({ user, groups, onLogout }) {
   const totalOwed = groups.filter((g) => g.yourBalance > 0).reduce((sum, g) => sum + g.yourBalance, 0);
   const totalOwe = groups.filter((g) => g.yourBalance < 0).reduce((sum, g) => sum - g.yourBalance, 0);
+  // Groups can each pick their own display currency, but these totals just
+  // sum raw numbers across all of them (there's nothing to convert between
+  // currencies, since none of it is real currency tracking to begin with --
+  // see lib/format.js). Flag it when that mix is actually visible here.
+  const currencies = [...new Set(groups.map((g) => g.currency))];
 
   return (
     <div className="profile-page">
@@ -32,6 +37,12 @@ export function Profile({ user, groups, onLogout }) {
                 <span className="stat-value negative">{formatCurrency(totalOwe)}</span>
               </div>
             </div>
+            {currencies.length > 1 && (
+              <p className="profile-caveat">
+                Your groups use different currency symbols ({currencies.join(', ')}) -- these totals just
+                add the raw numbers together, since nothing here actually converts between currencies.
+              </p>
+            )}
           </div>
         </div>
 

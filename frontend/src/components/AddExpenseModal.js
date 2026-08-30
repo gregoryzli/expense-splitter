@@ -5,7 +5,7 @@ import './AddExpenseModal.css';
 const CATEGORIES = ['Food', 'Transportation', 'Entertainment', 'Shopping', 'Travel', 'Utilities', 'Accommodation', 'Other'];
 const EPSILON = 0.01;
 
-export function AddExpenseModal({ onClose, onAddExpense, currentUser, members }) {
+export function AddExpenseModal({ onClose, onAddExpense, currentUser, members, currency }) {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Food');
   const [amount, setAmount] = useState('');
@@ -64,7 +64,7 @@ export function AddExpenseModal({ onClose, onAddExpense, currentUser, members })
     if (splitType !== 'EQUAL' && Math.abs(remaining) > EPSILON) {
       return setError(
         splitType === 'EXACT'
-          ? `Amounts must add up to the total (${formatCurrency(remaining)} left)`
+          ? `Amounts must add up to the total (${formatCurrency(remaining, currency)} left)`
           : `Percentages must add up to 100 (${remaining.toFixed(2)}% left)`
       );
     }
@@ -184,7 +184,7 @@ export function AddExpenseModal({ onClose, onAddExpense, currentUser, members })
                     </label>
 
                     {isSelected && splitType === 'EQUAL' && (
-                      <span className="split-value-readout">{formatCurrency(equalShare)}</span>
+                      <span className="split-value-readout">{formatCurrency(equalShare, currency)}</span>
                     )}
                     {isSelected && splitType === 'EXACT' && (
                       <div className="split-value-input">
@@ -216,7 +216,7 @@ export function AddExpenseModal({ onClose, onAddExpense, currentUser, members })
             {splitType !== 'EQUAL' && selectedMembers.length > 0 && (
               <p className={`split-remaining ${Math.abs(remaining) > EPSILON ? 'off' : 'ok'}`}>
                 {splitType === 'EXACT'
-                  ? `${formatCurrency(Math.abs(remaining))} ${remaining >= 0 ? 'left to assign' : 'over the total'}`
+                  ? `${formatCurrency(Math.abs(remaining), currency)} ${remaining >= 0 ? 'left to assign' : 'over the total'}`
                   : `${Math.abs(remaining).toFixed(2)}% ${remaining >= 0 ? 'left to assign' : 'over 100%'}`}
               </p>
             )}

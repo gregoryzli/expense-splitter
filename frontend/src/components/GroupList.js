@@ -2,14 +2,14 @@ import React from 'react';
 import './GroupList.css';
 import { formatCurrency, initial, memberCountLabel } from '../lib/format';
 
-function BalanceChip({ amount }) {
+function BalanceChip({ amount, currency }) {
   if (Math.abs(amount) < 0.005) {
     return <span className="balance-chip settled">settled up</span>;
   }
   return amount > 0 ? (
-    <span className="balance-chip owed">you're owed {formatCurrency(amount)}</span>
+    <span className="balance-chip owed">you're owed {formatCurrency(amount, currency)}</span>
   ) : (
-    <span className="balance-chip owes">you owe {formatCurrency(-amount)}</span>
+    <span className="balance-chip owes">you owe {formatCurrency(-amount, currency)}</span>
   );
 }
 
@@ -46,7 +46,7 @@ export function GroupList({ groups, onCreateGroup, onOpenGroup }) {
                     <div className="more">+{group.members.length - 4}</div>
                   )}
                 </div>
-                <BalanceChip amount={group.yourBalance} />
+                <BalanceChip amount={group.yourBalance} currency={group.currency} />
               </div>
             </button>
           ))}

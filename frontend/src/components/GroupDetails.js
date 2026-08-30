@@ -161,6 +161,7 @@ export function GroupDetails({ groupId, currentUser, onBack, onGroupChanged }) {
           ) : (
             <ExpenseList
               expenses={expenses || []}
+              currency={group.currency}
               onAddExpense={() => setIsAddExpenseOpen(true)}
               onDeleteExpense={handleDeleteExpense}
               canDelete={canDelete}
@@ -169,7 +170,13 @@ export function GroupDetails({ groupId, currentUser, onBack, onGroupChanged }) {
           )}
         </>
       ) : (
-        <SettleUp groupId={groupId} currentUserId={currentUser.id} refreshSignal={refreshSignal} onSettled={bumpBalances} />
+        <SettleUp
+          groupId={groupId}
+          currentUserId={currentUser.id}
+          currency={group.currency}
+          refreshSignal={refreshSignal}
+          onSettled={bumpBalances}
+        />
       )}
 
       {isAddExpenseOpen && (
@@ -178,6 +185,7 @@ export function GroupDetails({ groupId, currentUser, onBack, onGroupChanged }) {
           onAddExpense={handleAddExpense}
           currentUser={currentUser}
           members={group.members}
+          currency={group.currency}
         />
       )}
     </div>

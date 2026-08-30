@@ -30,6 +30,11 @@ model Group {
   id          Int      @id @default(autoincrement())
   name        String   @db.VarChar(100)
   description String?  @db.VarChar(500)
+  // Display label only, agreed on by the group at creation time -- see
+  // lib/money.ts. Nothing converts between currencies or verifies amounts
+  // were actually entered in this unit; it just picks which symbol every
+  // member sees for this group's numbers.
+  currency    String   @default("USD") @db.VarChar(3)
   createdById Int      @map("created_by")
   createdAt   DateTime @default(now()) @map("created_at")
 

@@ -3,9 +3,18 @@ import { api } from '../lib/api';
 import { initial } from '../lib/format';
 import './CreateGroupModal.css';
 
+const CURRENCY_OPTIONS = [
+  { code: 'USD', label: 'USD ($)' },
+  { code: 'EUR', label: 'EUR (€)' },
+  { code: 'GBP', label: 'GBP (£)' },
+  { code: 'CAD', label: 'CAD (C$)' },
+  { code: 'AUD', label: 'AUD (A$)' },
+];
+
 export function CreateGroupModal({ onClose, onCreateGroup }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [currency, setCurrency] = useState('USD');
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -58,6 +67,7 @@ export function CreateGroupModal({ onClose, onCreateGroup }) {
       const group = await api.post('/groups', {
         name: name.trim(),
         description: description.trim() || undefined,
+        currency,
         memberEmails: invited.map((u) => u.email),
       });
       onCreateGroup(group);
@@ -100,6 +110,19 @@ export function CreateGroupModal({ onClose, onCreateGroup }) {
               placeholder="Describe what this group is for..."
               rows="3"
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="currency">Currency symbol</label>
+            <p className="form-help">
+              Just a display label everyone in this group will see -- it doesn't convert
+              amounts or verify what currency anything was actually entered in.
+            </p>
+            <select id="currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {CURRENCY_OPTIONS.map((c) => (
+                <option key={c.code} value={c.code}>{c.label}</option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">
@@ -146,6 +169,7 @@ export function CreateGroupModal({ onClose, onCreateGroup }) {
               <h4>Group Preview</h4>
               <div className="preview-info">
                 <p><strong>Name:</strong> {name || 'Untitled Group'}</p>
+                <p><strong>Currency:</strong> {currency}</p>
                 <p><strong>Members:</strong> {1 + invited.length} (including you)</p>
               </div>
             </div>

@@ -1,22 +1,16 @@
-import React, { useState } from 'react';
-import { CURRENCY_STORAGE_KEY } from '../lib/format';
+import React from 'react';
 import './Settings.css';
 
-// This is the one real, working preference in the app -- everything
-// downstream of a group's balances is USD cents server-side (see
-// docs/ARCHITECTURE.md), so a "default currency" setting can only ever
-// re-symbolize the display, not convert it (formatCurrency reads the same
-// key). Kept small and honest rather than shipping toggles (notifications,
-// privacy, themes) that don't wire up to anything.
+// Currency used to live here as a profile-wide localStorage preference, but
+// that never made sense: a currency symbol describes a shared group's
+// expenses, not one person's personal taste, and different members could
+// end up seeing different symbols on the exact same numbers. It's now set
+// per group at creation time instead (CreateGroupModal), which is the
+// thing that actually needed "agreeing on." Nothing else in the app is a
+// real, working preference yet, so there's honestly nothing to put here --
+// kept as an empty state rather than shipping decorative toggles
+// (notifications, privacy, themes) that don't wire up to anything.
 export function Settings() {
-  const [currency, setCurrency] = useState(() => localStorage.getItem(CURRENCY_STORAGE_KEY) || 'USD');
-
-  const handleChange = (e) => {
-    const value = e.target.value;
-    setCurrency(value);
-    localStorage.setItem(CURRENCY_STORAGE_KEY, value);
-  };
-
   return (
     <div className="settings-page">
       <div className="settings-header">
@@ -25,23 +19,11 @@ export function Settings() {
       </div>
 
       <div className="settings-content">
-        <div className="settings-section">
-          <h3>Display</h3>
-          <div className="settings-group">
-            <div className="setting-item">
-              <div className="setting-info">
-                <label>Currency symbol</label>
-                <p>Changes how amounts are displayed app-wide. Balances are still tracked in USD -- this doesn't convert values.</p>
-              </div>
-              <select value={currency} onChange={handleChange} className="setting-select">
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="CAD">CAD (C$)</option>
-                <option value="AUD">AUD (A$)</option>
-              </select>
-            </div>
-          </div>
+        <div className="settings-empty">
+          <p>Nothing to configure here yet.</p>
+          <p className="settings-empty-hint">
+            Currency is set per group when you create it, not as a personal preference here.
+          </p>
         </div>
       </div>
     </div>

@@ -1,10 +1,11 @@
-export const CURRENCY_STORAGE_KEY = "splitpay:currency-display";
-
-// Every amount the API returns is USD (see docs/ARCHITECTURE.md) -- this
-// only swaps the displayed symbol/formatting per the Settings page
-// preference, it does not convert the underlying value.
-export function formatCurrency(amount) {
-  const currency = localStorage.getItem(CURRENCY_STORAGE_KEY) || "USD";
+// Currency is a per-group label (set when the group is created, agreed on
+// by whoever's in it) -- not a personal/profile-wide preference, and not
+// something the API tracks as a real currency. Nothing converts between
+// currencies or verifies amounts were actually entered in this unit; it
+// just picks which symbol/formatting Intl.NumberFormat applies. Defaults
+// to USD for anywhere a group's currency isn't available (e.g. before a
+// group has loaded).
+export function formatCurrency(amount, currency = "USD") {
   return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
 }
 

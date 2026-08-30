@@ -13,7 +13,7 @@ const CATEGORY_ICONS = {
   Other: '📝',
 };
 
-export function ExpenseList({ expenses, onAddExpense, onDeleteExpense, canDelete, pendingIds = [] }) {
+export function ExpenseList({ expenses, currency, onAddExpense, onDeleteExpense, canDelete, pendingIds = [] }) {
   const [expandedId, setExpandedId] = useState(null);
 
   return (
@@ -46,7 +46,7 @@ export function ExpenseList({ expenses, onAddExpense, onDeleteExpense, canDelete
                     <span className="category-icon">{CATEGORY_ICONS[expense.category] || '📝'}</span>
                     <span className="category-name">{expense.category}</span>
                   </div>
-                  <div className="expense-amount">{formatCurrency(expense.amount)}</div>
+                  <div className="expense-amount">{formatCurrency(expense.amount, currency)}</div>
                 </div>
 
                 <div className="expense-details">
@@ -71,7 +71,7 @@ export function ExpenseList({ expenses, onAddExpense, onDeleteExpense, canDelete
                       <li key={s.user.id}>
                         <span className="avatar-xs">{initial(s.user.name)}</span>
                         <span>{s.user.name}</span>
-                        <span className="split-share">{formatCurrency(s.amount)}</span>
+                        <span className="split-share">{formatCurrency(s.amount, currency)}</span>
                       </li>
                     ))}
                   </ul>

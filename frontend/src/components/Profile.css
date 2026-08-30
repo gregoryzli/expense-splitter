@@ -94,6 +94,12 @@
   color: #c53030;
 }
 
+.profile-caveat {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  margin: 16px 0 0 0;
+}
+
 .profile-actions {
   display: flex;
   gap: 12px;

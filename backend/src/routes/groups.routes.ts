@@ -34,6 +34,7 @@ router.get("/", async (req, res) => {
       id: g.id,
       name: g.name,
       description: g.description,
+      currency: g.currency,
       createdById: g.createdById,
       createdAt: g.createdAt,
       members: g.members.map((m) => m.user),
@@ -43,7 +44,7 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", validate(createGroupSchema), async (req, res) => {
-  const { name, description, memberEmails } = req.body;
+  const { name, description, currency, memberEmails } = req.body;
 
   let invitedUsers: { id: number; email: string }[] = [];
   if (memberEmails.length > 0) {
@@ -67,6 +68,7 @@ router.post("/", validate(createGroupSchema), async (req, res) => {
     data: {
       name,
       description,
+      currency,
       createdById: req.user!.id,
       members: { create: memberIds.map((userId) => ({ userId })) },
     },
@@ -77,6 +79,7 @@ router.post("/", validate(createGroupSchema), async (req, res) => {
     id: group.id,
     name: group.name,
     description: group.description,
+    currency: group.currency,
     createdById: group.createdById,
     createdAt: group.createdAt,
     members: group.members.map((m) => m.user),
@@ -98,6 +101,7 @@ router.get("/:groupId", requireGroupMember, async (req, res) => {
     id: group.id,
     name: group.name,
     description: group.description,
+    currency: group.currency,
     createdById: group.createdById,
     createdAt: group.createdAt,
     members: group.members.map((m) => m.user),

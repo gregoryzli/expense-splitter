@@ -120,6 +120,7 @@ async function main() {
     data: {
       name: "Ski Trip",
       description: "Weekend trip to the mountains",
+      currency: "EUR", // demonstrates per-group currency -- still just a label, no conversion
       createdById: demo.id,
       members: { create: [{ userId: demo.id }, { userId: alice.id }, { userId: carol.id }] },
     },
