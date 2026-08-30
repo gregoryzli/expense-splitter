@@ -7,7 +7,8 @@ everyone up.
 **Live demo:** https://gregoryzli.github.io/expense-splitter/
 Log in as `demo@example.com` / `password123` (or `alice@`, `bob@`,
 `carol@example.com`, same password) to see it pre-loaded with two groups
-mid-lifecycle rather than an empty state.
+mid-lifecycle rather than an empty state -- one in EUR, one in USD, and
+`demo` already has a few saved friends.
 
 > The backend is on a free-tier host that spins down after 15 minutes idle.
 > If it's been a while since the last visit, the first request can take
@@ -37,7 +38,7 @@ mid-lifecycle rather than an empty state.
 | ORM | Prisma |
 | Validation | zod |
 | Auth | JWT in an httpOnly cookie, `bcryptjs` for password hashing |
-| Tests | vitest + supertest — 63 tests (unit + integration against a real MySQL instance) |
+| Tests | vitest + supertest — 92 tests (unit + integration against a real MySQL instance) |
 | Backend hosting | Render (free-tier Docker web service) |
 | Frontend hosting | GitHub Pages, via GitHub Actions |
 
@@ -109,6 +110,31 @@ never exceeds `n − 1`) against randomized inputs rather than fixed cases.
 - **Every group-scoped route checks group membership** before touching
   balances or expenses — the one piece of authorization logic that actually
   matters, since this is financial data.
+- **Settlements need the other person's confirmation** before they affect
+  balances. Marking a payment "paid" records it as `PENDING`; only the
+  counterparty can confirm it, so a mistaken (or bad-faith) "mark as paid"
+  can't unilaterally shrink what someone owes.
+- **Currency is a per-group label, not real currency tracking.** It's set
+  once when a group is created and only changes which symbol
+  `Intl.NumberFormat` uses for that group's numbers — nothing converts
+  between currencies or verifies what currency an amount was actually
+  entered in.
+- **Leaving a group with a nonzero balance doesn't get blocked.** It used
+  to; now it always succeeds and leaves an `UnresolvedDeparture` behind for
+  whoever's left to resolve — either write off the balance (auto-recorded
+  as if it had actually been settled) or split it evenly across the
+  remaining members. The alternative, silently dropping someone's debt off
+  the ledger the moment they leave, seemed worse than a small banner.
+- **Account deletion is soft-only.** Expenses and settlements reference
+  users with no cascade, so a hard delete would either violate a foreign
+  key or erase other people's expense history along with the deleted
+  account. Deleting an account deactivates login and email/search
+  visibility, then runs every group membership through the same departure
+  logic leaving does — it doesn't get a separate code path.
+- **Friends are a one-directional saved-contacts list**, not a mutual
+  relationship. Saving someone doesn't notify them or add you to their
+  list — it just remembers people so creating a new group doesn't mean
+  re-searching for the same people every time.
 
 ## Running it locally
 
@@ -147,7 +173,9 @@ offset Render's free-tier idle spindown. Full first-time setup steps are in
 
 - Cross-group netting (a global balance across every shared group, the way
   Splitwise does it) — settle-up here is scoped per group.
-- Multi-currency — everything is USD cents.
+- Real currency conversion — a group's currency is a display label only
+  (see above); nothing converts between currencies or enforces that
+  amounts were actually entered in the selected one.
 - Real payment processing — a "settlement" is a record of an out-of-band
   payment (cash, Venmo, whatever actually happened), not a processed
   transaction.
