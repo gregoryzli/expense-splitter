@@ -1,19 +1,18 @@
-# Deploying to a live URL
+# Deployment
 
 Architecture: **backend on Render** (free-tier Docker web service, running
 the exact same image as local docker-compose), **database on TiDB
 Serverless** (MySQL wire-compatible, genuinely free), **frontend on GitHub
-Pages** (static hosting via GitHub Actions). No AWS involved -- everything
-needed to deploy is already written (`backend/Dockerfile`, `render.yaml`,
-`.github/workflows/deploy-pages.yml`, `.github/workflows/keep-alive.yml`)
--- what's left are steps that need your Render/TiDB/GitHub accounts, which
-I can't do on your behalf.
+Pages** (static hosting via GitHub Actions). Everything needed to deploy is
+already in the repo (`backend/Dockerfile`, `render.yaml`,
+`.github/workflows/deploy-pages.yml`, `.github/workflows/keep-alive.yml`) --
+what's left is account-specific setup: creating the Render/TiDB/GitHub
+resources and wiring their URLs/secrets together, below.
 
-(Earlier draft of this doc targeted AWS Lambda + RDS -- abandoned because
-the AWS account was gated behind payment/identity verification with no
-clear timeline, and Aurora/RDS don't meaningfully benefit from AWS's free
-tier anyway. Render's free web service runs the unmodified Dockerfile with
-no code changes, which is simpler than the Lambda path was.)
+Render was chosen over AWS Lambda + RDS: Aurora/RDS don't meaningfully
+benefit from AWS's free tier, and Render's free web service runs the
+unmodified Dockerfile with no code changes, which is simpler than a Lambda
+migration would have been.
 
 ## 1. Database: create a TiDB Serverless cluster
 
@@ -34,9 +33,8 @@ no code changes, which is simpler than the Lambda path was.)
 
 ## 2. Push the repo to GitHub
 
-This repo has never been pushed anywhere (`git remote -v` is empty). Create
-an empty repo on GitHub (no README/gitignore -- this repo already has
-both), then:
+Create an empty repo on GitHub (no README/gitignore -- this repo already
+has both), then:
 
 ```bash
 git remote add origin git@github.com:<you>/expense-splitter.git
@@ -58,8 +56,8 @@ integration, so the repo needs to exist there first.
    - `DATABASE_URL` -- the TiDB connection string from step 1
    - `JWT_SECRET` -- a long random value, e.g. `openssl rand -base64 48`
    - `CORS_ORIGIN` -- leave as a placeholder for now (e.g.
-     `http://localhost:3000`); you'll update it once you know your GitHub
-     Pages URL in step 4, then Render auto-redeploys on save.
+     `http://localhost:3000`); update it once the GitHub Pages URL is known
+     in step 4, then Render auto-redeploys on save.
 4. Once deployed, copy the service URL (`https://expense-splitter-api-xxxx.onrender.com`).
    Sanity check:
    ```bash
@@ -69,9 +67,8 @@ integration, so the repo needs to exist there first.
 Note on cold starts: the free plan spins the container down after 15
 minutes idle; the next request pays a ~30-60s cold-start penalty while it
 boots and `prisma migrate deploy` runs its no-op check. The keep-alive
-workflow in step 5 avoids this for anyone clicking the link, but it's
-worth a line in the resume README regardless so a cold hit doesn't read as
-a bug.
+workflow in step 5 avoids this for anyone visiting the live link, so a cold
+hit shouldn't come up in practice.
 
 ## 4. Enable GitHub Pages
 
@@ -100,14 +97,14 @@ schedule -- until this variable is set it's a harmless no-op.
 
 ## 6. Close the loop: CORS
 
-Once you have the real Pages URL, go back to Render's dashboard ->
+Once the real Pages URL is known, go back to Render's dashboard ->
 **Environment** and update `CORS_ORIGIN` to match it exactly (including no
 trailing slash), e.g. `https://<you>.github.io`. Render redeploys
 automatically on save.
 
-Without this, the deployed frontend's requests will be blocked by the
-backend's CORS check (by design -- same mechanism I verified is working
-during local testing, just pointed at the wrong origin until this step).
+Without this, the deployed frontend's requests get blocked by the
+backend's CORS check (by design -- same mechanism covered by local testing,
+just pointed at the wrong origin until this step).
 
 ## 7. Seed demo data (optional, recommended for a resume link)
 
@@ -120,18 +117,9 @@ Gives anyone clicking the link real data to look at immediately (login as
 `demo@example.com` / `password123`) instead of an empty "create your first
 group" screen.
 
-## Cleanup: the old RDS instance
+## Verifying the deployment
 
-If you had already created an `expense-splitter-db` RDS instance from an
-earlier attempt, it's unused now -- delete it once your AWS account clears
-verification, so it doesn't quietly start billing for a database nothing
-reads from anymore.
-
-## Everything above this line needs your credentials
-
-Once deployed through steps 1-6, run through the app end to end (this is
-identical to how I browser-tested the app locally in stage 4 -- the plan
-in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and the local dev flow are
-unchanged, only the URLs differ) and let me know if anything doesn't behave
-the way it did locally. Stage 7 (README with the live link, screenshots,
-and the algorithm writeup) picks up once this is live.
+Once steps 1-6 are done, run through the app end to end against the live
+URLs -- register, create a group, add an expense of each split type,
+settle up, confirm a payment -- the same flow as local dev, just pointed at
+the deployed backend instead of `localhost:3001`.

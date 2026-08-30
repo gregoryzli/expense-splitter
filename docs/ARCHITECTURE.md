@@ -1,12 +1,9 @@
 # Architecture
 
-This started as a pre-implementation plan (stage 2 of the rewrite -- see repo
-history for the stage 1 audit) and is now the actual architecture reference
-for what's built: the data model, API surface, and algorithm below all
-reflect the current code, including everything added after the original
-plan (settlement confirmation, per-group currency, friends, account
-deletion). See the root [README](../README.md) for the live demo link and a
-shorter version of this same material.
+The full architecture reference: data model, API surface, and the reasoning
+behind the auth approach and settle-up algorithm. See the root
+[README](../README.md) for the live demo link and a shorter version of this
+same material.
 
 ## Data model
 
@@ -195,7 +192,7 @@ different domains) cookie** — not `localStorage`, and not server-side sessions
 Why not sessions: a session store needs a persistence layer (a `sessions` table, or
 Redis) and, if you ever run more than one backend instance, either sticky sessions or
 a shared store. None of that is wrong, it's just infrastructure this project doesn't
-need to prove the point, and it adds a moving part to the free-tier deploy in stage 6.
+need to prove the point, and it adds a moving part to the free-tier deploy.
 
 Why not `localStorage` JWTs: a token in `localStorage` is readable by any JS running on
 the page, which means it's exfiltratable via any XSS bug, including from a dependency.
@@ -203,12 +200,11 @@ An httpOnly cookie is invisible to JS entirely — the browser sends it automati
 and a cross-site request still needs a matching `SameSite`/CORS configuration, so it's
 not a free-for-all either.
 
-The honest tradeoff I'm accepting: this is a stateless JWT with no server-side
-revocation list. Logout clears the cookie client-side; a stolen token is valid until
-it expires. I'm mitigating that with a short expiry (7 days) rather than building
-token revocation or refresh-token rotation — that machinery is a legitimate next step
-for a production app, and worth naming explicitly in an interview as "the thing I'd
-add first," but it's disproportionate for this project's scope.
+The honest tradeoff: this is a stateless JWT with no server-side revocation
+list. Logout clears the cookie client-side; a stolen token is valid until it
+expires. That's mitigated with a short expiry (7 days) rather than building
+token revocation or refresh-token rotation — legitimate next steps for a
+production app, but disproportionate for this project's scope.
 
 Password hashing: `bcryptjs` (pure JS), not native `bcrypt`. Native `bcrypt` is faster,
 but requires a compiled native addon, which means the Docker image needs build tools
@@ -218,8 +214,8 @@ under real load.
 
 ## The settle-up algorithm
 
-This is the part worth being precise about, since it's the thing you specifically
-want to defend in an interview.
+This is the part worth being precise about, since it's the most interesting
+algorithmic decision in the codebase.
 
 **The problem:** given each member's net balance in a group (positive = owed money,
 negative = owes money, and the balances always sum to zero), find a set of
@@ -257,15 +253,15 @@ while i < creditors.length and j < debtors.length:
   asymptotically tight even though it's not always the exact optimum for every
   input.
 - It's **fast**: sort is `O(n log n)`, the matching pass is `O(n)`, so `O(n log n)`
-  total — trivial at the scale of a group of people, but it's the right way to
-  answer "what's the complexity" in an interview.
+  total — trivial at the scale of a group of people, but the right complexity to
+  cite regardless of scale.
 - The cases where greedy isn't exactly optimal are ones where a subset of balances
   happens to sum to zero on its own (e.g. balances `[+30, +30, -30, -30]` can settle
   in 2 payments by pairing same-magnitude opposites, and greedy will actually find
   that here — but adversarial inputs exist where an exact solver would find one
   fewer transaction than greedy). That tradeoff is noted in the README rather than
-  hidden, and it's a good "what would you improve" answer: for small n (say ≤ 12–15)
-  you could brute-force/DP over subset bitmasks for the exact optimum, since the
+  hidden: for small n (say ≤ 12–15) you could brute-force/DP over subset bitmasks
+  for the exact optimum, since the
   state space is `O(2^n · n)`.
 
 This is implemented as a pure function (`computeSettlement(balances): Payment[]`)
