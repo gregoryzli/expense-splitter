@@ -25,9 +25,9 @@ router.post("/", validate(addFriendSchema), async (req, res) => {
 
   const friend = await prisma.user.findUnique({
     where: { id: friendId },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, deletedAt: true },
   });
-  if (!friend) {
+  if (!friend || friend.deletedAt) {
     throw AppError.notFound("No account with that id", "USER_NOT_FOUND");
   }
 
@@ -39,7 +39,7 @@ router.post("/", validate(addFriendSchema), async (req, res) => {
   }
 
   await prisma.friend.create({ data: { userId: req.user!.id, friendId } });
-  res.status(201).json(friend);
+  res.status(201).json({ id: friend.id, name: friend.name, email: friend.email });
 });
 
 router.delete("/:friendId", async (req, res) => {

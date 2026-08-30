@@ -20,7 +20,8 @@ export function SettleUp({ groupId, currentUserId, currency, refreshSignal, onSe
         api.get(`/groups/${groupId}/balances`),
         api.get(`/groups/${groupId}/settlements/suggestions`),
         api.get(`/groups/${groupId}/settlements`),
-      ]).then(([balances, suggestions, history]) => ({ balances, suggestions, history })),
+        api.get(`/groups/${groupId}/departures`),
+      ]).then(([balances, suggestions, history, departures]) => ({ balances, suggestions, history, departures })),
     [groupId]
   );
   const { data, loading, error, refetch } = useAsync(fetchData, [groupId, refreshSignal]);
@@ -29,6 +30,7 @@ export function SettleUp({ groupId, currentUserId, currency, refreshSignal, onSe
   const [hidden, setHidden] = useState(new Set()); // optimistically-recorded suggestion keys
   const [rowError, setRowError] = useState(null); // { key, message }
   const [actingOn, setActingOn] = useState(null); // settlement id being confirmed/rejected
+  const [resolving, setResolving] = useState(null); // departure id being resolved
 
   const recordPayment = async (suggestion) => {
     const key = suggestionKey(suggestion);
@@ -91,10 +93,24 @@ export function SettleUp({ groupId, currentUserId, currency, refreshSignal, onSe
     }
   };
 
+  const resolveDeparture = async (departure, resolution) => {
+    setResolving(departure.id);
+    setRowError(null);
+    try {
+      await api.post(`/groups/${groupId}/departures/${departure.id}/resolve`, { resolution });
+      onSettled?.();
+    } catch (err) {
+      setRowError({ key: `departure-${departure.id}`, message: err.message || 'Could not resolve that departure' });
+    } finally {
+      setResolving(null);
+    }
+  };
+
   if (loading) return <LoadingState label="Loading balances..." />;
   if (error) return <ErrorBanner error={error} onRetry={refetch} />;
 
-  const { balances, suggestions, history } = data;
+  const { balances, suggestions, history, departures } = data;
+  const unresolvedDepartures = departures.filter((d) => !d.resolvedAt);
   const pending = history.filter((h) => h.status === 'PENDING');
   const confirmed = history.filter((h) => h.status === 'CONFIRMED');
   const pendingKeys = new Set(pending.map(historyKey));
@@ -120,6 +136,49 @@ export function SettleUp({ groupId, currentUserId, currency, refreshSignal, onSe
           ))}
         </ul>
       </section>
+
+      {unresolvedDepartures.length > 0 && (
+        <section className="settle-section departures-section">
+          <h3>Unresolved departures</h3>
+          <p className="settle-hint">
+            Someone left this group with a balance that isn't zero. Pick how to handle it -- their side of the
+            ledger doesn't change until you do.
+          </p>
+          <ul className="departure-list">
+            {unresolvedDepartures.map((d) => {
+              const errKey = `departure-${d.id}`;
+              const isBusy = resolving === d.id;
+              return (
+                <li key={d.id} className="departure-row">
+                  <span>
+                    <strong>{d.user.name}</strong> left {' '}
+                    {d.balance > 0
+                      ? <>owed <span className="suggestion-amount">{formatCurrency(d.balance, currency)}</span></>
+                      : <>owing <span className="suggestion-amount">{formatCurrency(-d.balance, currency)}</span></>}
+                  </span>
+                  <div className="departure-actions">
+                    <button
+                      className="departure-btn"
+                      onClick={() => resolveDeparture(d, 'WRITE_OFF')}
+                      disabled={isBusy}
+                    >
+                      {isBusy ? 'Working...' : 'Assume paid'}
+                    </button>
+                    <button
+                      className="departure-btn primary"
+                      onClick={() => resolveDeparture(d, 'ABSORB_EVEN')}
+                      disabled={isBusy}
+                    >
+                      {isBusy ? 'Working...' : 'Split evenly among us'}
+                    </button>
+                  </div>
+                  {rowError?.key === errKey && <span className="suggestion-error">{rowError.message}</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <section className="settle-section">
         <h3>Suggested payments</h3>
@@ -222,8 +281,14 @@ export function SettleUp({ groupId, currentUserId, currency, refreshSignal, onSe
             {confirmed.map((h) => (
               <li key={h.id} className="history-row">
                 <span>
-                  {h.fromUser.id === currentUserId ? 'You' : h.fromUser.name} paid{' '}
-                  {h.toUser.id === currentUserId ? 'you' : h.toUser.name} {formatCurrency(h.amount, currency)}
+                  {h.note ? (
+                    <em className="history-note">{h.note} ({formatCurrency(h.amount, currency)})</em>
+                  ) : (
+                    <>
+                      {h.fromUser.id === currentUserId ? 'You' : h.fromUser.name} paid{' '}
+                      {h.toUser.id === currentUserId ? 'you' : h.toUser.name} {formatCurrency(h.amount, currency)}
+                    </>
+                  )}
                 </span>
                 <span className="history-date">{formatDate(h.confirmedAt || h.settledAt)}</span>
               </li>

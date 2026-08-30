@@ -11,6 +11,8 @@ import { dollarsToCents, centsToDollars } from "../lib/money";
 import { buildExpenseSplits } from "../services/expenseSplits";
 import { getGroupBalances } from "../services/balances";
 import { computeSettlement } from "../services/settleUp";
+import { leaveGroup, resolveDeparture } from "../services/departures";
+import { resolveDepartureSchema } from "../schemas/departure.schema";
 
 const router = Router();
 router.use(requireAuth);
@@ -49,7 +51,7 @@ router.post("/", validate(createGroupSchema), async (req, res) => {
   let invitedUsers: { id: number; email: string }[] = [];
   if (memberEmails.length > 0) {
     invitedUsers = await prisma.user.findMany({
-      where: { email: { in: memberEmails } },
+      where: { email: { in: memberEmails }, deletedAt: null },
       select: { id: true, email: true },
     });
     const foundEmails = new Set(invitedUsers.map((u) => u.email));
@@ -123,7 +125,7 @@ router.patch("/:groupId", requireGroupMember, validate(updateGroupSchema), async
 router.post("/:groupId/members", requireGroupMember, validate(addMemberSchema), async (req, res) => {
   const groupId = req.group!.id;
   const user = await prisma.user.findUnique({ where: { email: req.body.email } });
-  if (!user) {
+  if (!user || user.deletedAt) {
     throw AppError.notFound("No account with that email", "USER_NOT_FOUND");
   }
 
@@ -153,30 +155,44 @@ router.delete("/:groupId/members/:userId", requireGroupMember, async (req, res) 
     throw AppError.forbidden("Only the group creator can remove other members");
   }
 
-  const balances = await getGroupBalances(groupId);
-  const target = balances.find((b) => b.userId === targetUserId);
-  if (target && target.balanceCents !== 0) {
-    throw AppError.conflict("This member has an outstanding balance and can't be removed yet", "NONZERO_BALANCE");
-  }
-
-  // Wrapped in a transaction so two members leaving at once can't both
-  // read "1 member left" and neither trigger the disband.
-  await prisma.$transaction(async (tx) => {
-    const deleted = await tx.groupMember.deleteMany({ where: { groupId, userId: targetUserId } });
-    if (deleted.count === 0) {
-      throw AppError.notFound("That user isn't a member of this group");
-    }
-
-    const remaining = await tx.groupMember.count({ where: { groupId } });
-    if (remaining === 0) {
-      // Group/Expense/Settlement all cascade-delete their children, so this
-      // one call cleans up expenses, splits, and settlements too.
-      await tx.group.delete({ where: { id: groupId } });
-    }
-  });
+  // Leaving always succeeds, even with a nonzero balance -- see
+  // services/departures.ts for how that balance gets tracked instead of
+  // silently disappearing from the group's ledger.
+  await leaveGroup(groupId, targetUserId);
 
   res.status(204).send();
 });
+
+router.get("/:groupId/departures", requireGroupMember, async (req, res) => {
+  const departures = await prisma.unresolvedDeparture.findMany({
+    where: { groupId: req.group!.id },
+    include: { user: memberSelect, resolvedBy: memberSelect },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(
+    departures.map((d) => ({
+      id: d.id,
+      user: d.user,
+      balance: centsToDollars(d.balanceCents),
+      createdAt: d.createdAt,
+      resolvedAt: d.resolvedAt,
+      resolvedBy: d.resolvedBy,
+      resolutionType: d.resolutionType,
+    }))
+  );
+});
+
+router.post(
+  "/:groupId/departures/:departureId/resolve",
+  requireGroupMember,
+  validate(resolveDepartureSchema),
+  async (req, res) => {
+    const groupId = req.group!.id;
+    const departureId = Number(req.params.departureId);
+    await resolveDeparture(groupId, departureId, req.user!.id, req.body.resolution);
+    res.status(204).send();
+  }
+);
 
 router.get("/:groupId/balances", requireGroupMember, async (req, res) => {
   const balances = await getGroupBalances(req.group!.id);
@@ -216,6 +232,7 @@ router.get("/:groupId/settlements", requireGroupMember, async (req, res) => {
       initiatedById: s.initiatedById,
       settledAt: s.settledAt,
       confirmedAt: s.confirmedAt,
+      note: s.note,
     }))
   );
 });

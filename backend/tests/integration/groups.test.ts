@@ -186,7 +186,7 @@ describe("group membership", () => {
     expect(res.status).toBe(204);
   });
 
-  it("blocks removing a member with a nonzero balance", async () => {
+  it("removing a member with a nonzero balance succeeds and records an unresolved departure", async () => {
     const alice = await registerUser({ name: "Alice" });
     const bob = await registerUser({ name: "Bob" });
     const group = await createGroup(alice, { name: "Trip", memberEmails: [bob.email] });
@@ -201,7 +201,11 @@ describe("group membership", () => {
     });
 
     const res = await alice.agent.delete(`/api/groups/${group.id}/members/${bob.user.id}`);
-    expect(res.status).toBe(409);
-    expect(res.body.error.code).toBe("NONZERO_BALANCE");
+    expect(res.status).toBe(204);
+
+    const departures = await alice.agent.get(`/api/groups/${group.id}/departures`);
+    expect(departures.status).toBe(200);
+    expect(departures.body).toHaveLength(1);
+    expect(departures.body[0]).toMatchObject({ user: { id: bob.user.id }, balance: -20, resolvedAt: null });
   });
 });

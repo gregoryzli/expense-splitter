@@ -16,6 +16,7 @@ router.get("/", requireAuth, async (req, res) => {
     where: {
       OR: [{ name: { contains: search } }, { email: { contains: search } }],
       NOT: { id: req.user!.id },
+      deletedAt: null,
     },
     select: { id: true, name: true, email: true },
     take: 10,

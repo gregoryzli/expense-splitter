@@ -35,3 +35,96 @@
   color: #a0aec0;
   margin-top: 8px;
 }
+
+.danger-zone {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #fed7d7;
+}
+
+.danger-zone h3 {
+  color: #c53030;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+
+.danger-zone-hint {
+  color: #718096;
+  font-size: 0.9rem;
+  margin: 0 0 16px 0;
+}
+
+.delete-account-btn {
+  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.delete-account-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c53030 0%, #9c2626 100%);
+}
+
+.delete-account-btn:disabled {
+  opacity: 0.6;
+}
+
+.delete-account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.delete-account-form label {
+  color: #2d3748;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.delete-account-form input {
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.delete-account-form input:focus {
+  outline: none;
+  border-color: #e53e3e;
+  box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+}
+
+.danger-zone-error {
+  color: #c53030;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.delete-account-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.cancel-delete-btn {
+  background: white;
+  border: 2px solid #e2e8f0;
+  color: #4a5568;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.cancel-delete-btn:hover:not(:disabled) {
+  background: #f7fafc;
+}

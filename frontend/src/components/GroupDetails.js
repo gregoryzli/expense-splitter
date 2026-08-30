@@ -98,9 +98,15 @@ export function GroupDetails({ groupId, currentUser, onBack, onGroupChanged }) {
 
   const handleLeaveGroup = async () => {
     const isLastMember = group.members.length === 1;
-    const confirmMessage = isLastMember
-      ? `You're the last member of "${group.name}" -- leaving will permanently delete the group and all its expenses. Continue?`
-      : `Leave "${group.name}"? You'll need to be re-invited to rejoin.`;
+    const myBalance = group.balances?.find((b) => b.userId === currentUser.id)?.balance ?? 0;
+    let confirmMessage;
+    if (isLastMember) {
+      confirmMessage = `You're the last member of "${group.name}" -- leaving will permanently delete the group and all its expenses. Continue?`;
+    } else if (myBalance !== 0) {
+      confirmMessage = `Leave "${group.name}"? Your balance isn't zero -- the remaining members will need to resolve it after you're gone.`;
+    } else {
+      confirmMessage = `Leave "${group.name}"? You'll need to be re-invited to rejoin.`;
+    }
     if (!window.confirm(confirmMessage)) return;
 
     setLeaveError(null);

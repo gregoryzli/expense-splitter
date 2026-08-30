@@ -8,11 +8,17 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  name         String   @db.VarChar(100)
-  email        String   @unique @db.VarChar(255)
-  passwordHash String   @map("password_hash")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(100)
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  // Accounts are soft-deleted, not removed: expenses/settlements they were
+  // ever party to reference their id with no cascade (deleting the row
+  // would either violate those foreign keys or wipe out other people's
+  // expense history along with it). A deleted account can't log in, search,
+  // or be added anywhere new, but their name still shows on old records.
+  deletedAt    DateTime? @map("deleted_at")
 
   groupsCreated       Group[]        @relation("GroupCreator")
   memberships         GroupMember[]
@@ -24,8 +30,39 @@ model User {
   settlementsInitiated Settlement[]  @relation("SettlementInitiator")
   savedFriends        Friend[]       @relation("FriendOwner")
   friendedBy          Friend[]       @relation("FriendTarget")
+  departures          UnresolvedDeparture[] @relation("DepartedUser")
+  departuresResolved  UnresolvedDeparture[] @relation("DepartureResolver")
 
   @@map("users")
+}
+
+enum DepartureResolution {
+  WRITE_OFF
+  ABSORB_EVEN
+}
+
+// Created when someone leaves (or is removed from, or account-deletes out
+// of) a group while their balance in it isn't zero. Leaving always succeeds
+// immediately -- this just records that the group's ledger has a gap that
+// needs a deliberate resolution from whoever's left, instead of silently
+// dropping the departed member's balance from the sheet (see
+// services/departures.ts for why that would otherwise happen).
+model UnresolvedDeparture {
+  id             Int                  @id @default(autoincrement())
+  groupId        Int                  @map("group_id")
+  userId         Int                  @map("user_id")
+  balanceCents   Int                  @map("balance_cents")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  resolvedAt     DateTime?            @map("resolved_at")
+  resolvedById   Int?                 @map("resolved_by")
+  resolutionType DepartureResolution? @map("resolution_type")
+
+  group      Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user       User  @relation("DepartedUser", fields: [userId], references: [id])
+  resolvedBy User? @relation("DepartureResolver", fields: [resolvedById], references: [id])
+
+  @@index([groupId])
+  @@map("unresolved_departures")
 }
 
 // A one-directional saved-contacts list, not a mutual relationship: saving
@@ -60,6 +97,7 @@ model Group {
   members     GroupMember[]
   expenses    Expense[]
   settlements Settlement[]
+  departures  UnresolvedDeparture[]
 
   @@map("groups")
 }
@@ -134,6 +172,11 @@ model Settlement {
   initiatedById Int              @map("initiated_by")
   settledAt     DateTime         @default(now()) @map("settled_at")
   confirmedAt   DateTime?        @map("confirmed_at")
+  // Set only on settlements auto-created to resolve a departure (see
+  // UnresolvedDeparture) -- explains in the payment history why "Bob paid
+  // Alice $50" appears for someone who's no longer in the group, since no
+  // real payment happened for those rows.
+  note          String?          @db.VarChar(200)
 
   group       Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
   fromUser    User  @relation("SettlementFrom", fields: [fromUserId], references: [id])
