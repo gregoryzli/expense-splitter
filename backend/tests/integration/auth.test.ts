@@ -75,6 +75,50 @@ describe("GET /api/auth/me", () => {
   });
 });
 
+describe("PATCH /api/auth/password", () => {
+  it("changes the password and lets the new one log in", async () => {
+    const { agent, email } = await registerUser({ email: "changepw@example.com", password: "oldpassword1" });
+
+    const res = await agent.patch("/api/auth/password").send({
+      currentPassword: "oldpassword1",
+      newPassword: "newpassword2",
+    });
+    expect(res.status).toBe(204);
+
+    const oldLogin = await request(server).post("/api/auth/login").send({ email, password: "oldpassword1" });
+    expect(oldLogin.status).toBe(401);
+
+    const newLogin = await request(server).post("/api/auth/login").send({ email, password: "newpassword2" });
+    expect(newLogin.status).toBe(200);
+  });
+
+  it("rejects the wrong current password with 401, leaving the password unchanged", async () => {
+    const { agent, email, password } = await registerUser({ email: "wrongcurrent@example.com" });
+
+    const res = await agent.patch("/api/auth/password").send({
+      currentPassword: "totallywrong",
+      newPassword: "newpassword2",
+    });
+    expect(res.status).toBe(401);
+
+    const stillWorks = await request(server).post("/api/auth/login").send({ email, password });
+    expect(stillWorks.status).toBe(200);
+  });
+
+  it("rejects a too-short new password with 400", async () => {
+    const { agent } = await registerUser({ email: "shortnew@example.com", password: "password123" });
+    const res = await agent.patch("/api/auth/password").send({ currentPassword: "password123", newPassword: "short" });
+    expect(res.status).toBe(400);
+  });
+
+  it("requires authentication", async () => {
+    const res = await request(server)
+      .patch("/api/auth/password")
+      .send({ currentPassword: "a", newPassword: "newpassword2" });
+    expect(res.status).toBe(401);
+  });
+});
+
 describe("POST /api/auth/logout", () => {
   it("clears the session so /me subsequently 401s", async () => {
     const { agent } = await registerUser();

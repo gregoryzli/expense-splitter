@@ -4,7 +4,7 @@ import { prisma } from "../lib/prisma";
 import { AppError } from "../lib/AppError";
 import { validate } from "../middleware/validate";
 import { requireAuth, signToken, COOKIE_NAME } from "../middleware/auth";
-import { deleteAccountSchema, loginSchema, registerSchema } from "../schemas/auth.schema";
+import { changePasswordSchema, deleteAccountSchema, loginSchema, registerSchema } from "../schemas/auth.schema";
 import { leaveGroup } from "../services/departures";
 
 const router = Router();
@@ -75,6 +75,22 @@ router.get("/me", requireAuth, async (req, res) => {
     throw AppError.unauthorized();
   }
   res.json(toPublicUser(user));
+});
+
+// The cookie stays valid after this -- there's no session store to
+// invalidate other devices from, and re-issuing the same JWT costs nothing
+// since it doesn't embed the password hash.
+router.patch("/password", requireAuth, validate(changePasswordSchema), async (req, res) => {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } });
+  const valid = await bcrypt.compare(req.body.currentPassword, user.passwordHash);
+  if (!valid) {
+    throw AppError.unauthorized("Current password is incorrect", "INVALID_CREDENTIALS");
+  }
+
+  const passwordHash = await bcrypt.hash(req.body.newPassword, BCRYPT_ROUNDS);
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+
+  res.status(204).send();
 });
 
 // Soft delete only -- see the deletedAt comment on the User model. Every

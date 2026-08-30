@@ -20,20 +20,73 @@
   margin: 0;
 }
 
-.settings-empty {
+.settings-section {
   background: white;
   border-radius: 12px;
-  padding: 32px;
+  padding: 24px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   border: 1px solid #e2e8f0;
-  text-align: center;
-  color: #718096;
 }
 
-.settings-empty-hint {
+.settings-section h3 {
+  color: #2d3748;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+}
+
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.password-form label {
+  color: #2d3748;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.password-form input {
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.password-form input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.password-success {
+  color: #2f855a;
+  font-size: 0.85rem;
+  margin: 0;
+  font-weight: 600;
+}
+
+.change-password-btn {
+  align-self: flex-start;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
   font-size: 0.9rem;
-  color: #a0aec0;
-  margin-top: 8px;
+  margin-top: 4px;
+}
+
+.change-password-btn:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.change-password-btn:disabled {
+  opacity: 0.6;
 }
 
 .danger-zone {

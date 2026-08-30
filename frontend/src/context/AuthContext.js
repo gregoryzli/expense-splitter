@@ -40,8 +40,12 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
+    await api.patch("/auth/password", { currentPassword, newPassword });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, checkingSession, login, register, logout, deleteAccount }}>
+    <AuthContext.Provider value={{ user, checkingSession, login, register, logout, deleteAccount, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

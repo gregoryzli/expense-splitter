@@ -8,17 +8,24 @@ import './Settings.css';
 // expenses, not one person's personal taste, and different members could
 // end up seeing different symbols on the exact same numbers. It's now set
 // per group at creation time instead (CreateGroupModal), which is the
-// thing that actually needed "agreeing on." Nothing else here is a
-// decorative toggle (notifications, privacy, themes) that doesn't wire up
-// to anything -- the one real action that belongs here is deleting the
-// account itself.
+// thing that actually needed "agreeing on." Everything below is a real,
+// working account action -- no decorative toggles (notifications, privacy,
+// themes) that don't wire up to anything.
 export function Settings() {
-  const { deleteAccount } = useAuth();
+  const { deleteAccount, changePassword } = useAuth();
   const navigate = useNavigate();
+
   const [confirming, setConfirming] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [pwError, setPwError] = useState('');
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const handleDelete = async (e) => {
     e.preventDefault();
@@ -33,6 +40,34 @@ export function Settings() {
     }
   };
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPwError('');
+    setPwSuccess(false);
+
+    if (newPassword.length < 8) {
+      setPwError('New password must be at least 8 characters');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPwError('New passwords do not match');
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setPwSuccess(true);
+    } catch (err) {
+      setPwError(err.message || 'Could not change your password');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   return (
     <div className="settings-page">
       <div className="settings-header">
@@ -41,11 +76,42 @@ export function Settings() {
       </div>
 
       <div className="settings-content">
-        <div className="settings-empty">
-          <p>Nothing to configure here yet.</p>
-          <p className="settings-empty-hint">
-            Currency is set per group when you create it, not as a personal preference here.
-          </p>
+        <div className="settings-section">
+          <h3>Change Password</h3>
+          <form onSubmit={handleChangePassword} className="password-form">
+            <label htmlFor="current-password">Current password</label>
+            <input
+              type="password"
+              id="current-password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+            <label htmlFor="new-password">New password</label>
+            <input
+              type="password"
+              id="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+            />
+            <label htmlFor="confirm-new-password">Confirm new password</label>
+            <input
+              type="password"
+              id="confirm-new-password"
+              value={confirmNewPassword}
+              onChange={(e) => setConfirmNewPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+            />
+            {pwError && <p className="danger-zone-error">{pwError}</p>}
+            {pwSuccess && <p className="password-success">Password changed.</p>}
+            <button type="submit" className="change-password-btn" disabled={changingPassword}>
+              {changingPassword ? 'Changing...' : 'Change Password'}
+            </button>
+          </form>
         </div>
 
         <div className="danger-zone">
