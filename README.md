@@ -10,9 +10,10 @@ Log in as `demo@example.com` / `password123` (or `alice@`, `bob@`,
 mid-lifecycle rather than an empty state -- one in EUR, one in USD, and
 `demo` already has a few saved friends.
 
-> The backend is on a free-tier host that spins down after 15 minutes idle.
-> If it's been a while since the last visit, the first request can take
-> 10-20s to wake back up — that's a cold start, not a bug.
+> The backend is on a free-tier host that spins down after 15 minutes idle,
+> kept warm by an external ping every 10 minutes (see Deployment below). A
+> cold start is possible but should be rare -- if the first request takes
+> 10-20s, that's what's happening, not a bug.
 
 ## Screenshots
 
@@ -164,10 +165,15 @@ npm test
 Backend and frontend deploy independently and auto-redeploy on push to
 `main`: the backend via Render's Docker build (`render.yaml`), the frontend
 via a GitHub Actions workflow to GitHub Pages
-(`.github/workflows/deploy-pages.yml`). A second workflow
-(`.github/workflows/keep-alive.yml`) pings the backend every 14 minutes to
-offset Render's free-tier idle spindown. Database is TiDB Serverless
+(`.github/workflows/deploy-pages.yml`). Database is TiDB Serverless
 (MySQL-wire-compatible), migrated via `prisma migrate deploy`.
+
+The backend is kept warm by an external scheduler
+([cron-job.org](https://cron-job.org)) hitting `/health` every 10 minutes,
+rather than a GitHub Actions cron: GitHub only guarantees scheduled
+workflows on a best-effort basis and in practice throttles sub-hourly
+schedules on a repo like this to multi-hour gaps, which is nowhere near
+often enough to offset Render's 15-minute idle spindown.
 
 ## What's explicitly out of scope
 
